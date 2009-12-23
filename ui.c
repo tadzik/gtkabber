@@ -11,7 +11,7 @@
 
 /* functions */
 static void append_to_tab(Chattab *, const char *);
-static void bold_tab_title(Chattab *);
+static void tab_notify(Chattab *);
 static void destroy(GtkWidget *, gpointer);
 static Chattab *find_tab_by_jid(const char *);
 static void free_all_tabs(void);
@@ -20,6 +20,7 @@ static gint match_tab_by_jid(gconstpointer, gconstpointer);
 static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
+static void set_wm_urgency(void);
 static void tab_entry_handler(GtkWidget *, gpointer);
 void ui_create_tab(Chattab *);
 XmppStatus ui_get_status(void);
@@ -31,7 +32,7 @@ void ui_tab_print_message(const char *, const char *);
 
 /* global variables */
 Chattab *status_tab;
-GtkWidget *nbook, *status_cbox, *status_entry;
+GtkWidget *nbook, *status_cbox, *status_entry, *window;
 GSList *tabs;
 /********************/
 
@@ -53,7 +54,7 @@ append_to_tab(Chattab *t, const char *s)
 } /* append_to_tab */
 
 static void
-bold_tab_title(Chattab *t)
+tab_notify(Chattab *t)
 {
 	GString *markup;
 	GtkWidget *activechild;
@@ -66,7 +67,8 @@ bold_tab_title(Chattab *t)
 	g_string_printf(markup, "<b>%s</b>", t->title);
 	gtk_label_set_markup(GTK_LABEL(t->label), markup->str);
 	g_string_free(markup, TRUE);
-} /* bold_tab_title */
+	set_wm_urgency();
+} /* tab_notify */
 
 static void
 destroy(GtkWidget *widget, gpointer data)
@@ -150,6 +152,14 @@ setup_cbox(GtkWidget *cbox)
 	g_signal_connect(G_OBJECT(cbox), "changed",
 					G_CALLBACK(xmpp_set_status), NULL);
 } /* setup_cbox */
+
+static void
+set_wm_urgency()
+{
+	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
+		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
+	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
+} /* set_wm_urgency */
 
 static void
 tab_entry_handler(GtkWidget *e, gpointer p)
@@ -239,7 +249,7 @@ void
 ui_setup(int *argc, char **argv[])
 {
 	/*here we set up the basic interface*/
-	GtkWidget *window, *hpaned, *leftbox, *rwin, *roster;
+	GtkWidget *hpaned, *leftbox, *rwin, *roster;
 	gtk_init(argc, argv);
 	/*creating*/
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -334,6 +344,6 @@ ui_tab_print_message(const char *jid, const char *msg)
 	 * (the function will check whether the tab is active or not,
 	 * we don't care about this) */
 	if(tab->jid)
-		bold_tab_title(tab);
+		tab_notify(tab);
 	g_string_free(str, TRUE);
 } /* ui_tab_print_message */
