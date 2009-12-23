@@ -19,19 +19,19 @@ main.o: main.c ui.h
 	@echo "Compiling main.c"
 	@$(CC) $(CFLAGS) -c main.c
 
-ui.o: ui.c
+ui.o: types.h ui.c
 	@echo "Compiling ui.c"
 	@$(CC) $(CFLAGS) -c ui.c
 
-ui_roster.o: ui_roster.c
+ui_roster.o: types.h ui_roster.c
 	@echo "Compiling ui_roster.c"
 	@$(CC) $(CFLAGS) -c ui_roster.c
 
-xmpp.o: xmpp.c commands.h ui.h xmpp_roster.h
+xmpp.o: types.h ui.h xmpp.c commands.h xmpp_roster.h
 	@echo "Compiling xmpp.c"
 	@$(CC) $(CFLAGS) -c xmpp.c
 
-xmpp_roster.o: xmpp_roster.c ui.h types.h
+xmpp_roster.o: types.h ui.h xmpp_roster.c
 	@echo "Compiling xmpp_roster.c"
 	@$(CC) $(CFLAGS) -c xmpp_roster.c
 

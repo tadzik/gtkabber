@@ -11,11 +11,13 @@
 
 /* functions */
 static void append_to_tab(Chattab *, const char *);
+static void bold_tab_title(Chattab *);
 static void destroy(GtkWidget *, gpointer);
 static Chattab *find_tab_by_jid(const char *);
 static void free_all_tabs(void);
 static void free_tab(gpointer, gpointer);
 static gint match_tab_by_jid(gconstpointer, gconstpointer);
+static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void tab_entry_handler(GtkWidget *, gpointer);
@@ -36,8 +38,6 @@ GSList *tabs;
 static void
 append_to_tab(Chattab *t, const char *s)
 {
-	/* this could be the base for ui_status_print, but I haven't
-	 * yet figured out any way to reuse code. TODO? */
 	GtkTextIter i;
 	time_t now;
 	char tstamp[12];
@@ -51,6 +51,22 @@ append_to_tab(Chattab *t, const char *s)
 	g_string_free(str, TRUE);
 	scroll_tab_down(t);
 } /* append_to_tab */
+
+static void
+bold_tab_title(Chattab *t)
+{
+	GString *markup;
+	GtkWidget *activechild;
+	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
+					gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
+	if(activechild == t->vbox)
+		/*this tab's alredy active*/
+		return;
+	markup = g_string_new(NULL);
+	g_string_printf(markup, "<b>%s</b>", t->title);
+	gtk_label_set_markup(GTK_LABEL(t->label), markup->str);
+	g_string_free(markup, TRUE);
+} /* bold_tab_title */
 
 static void
 destroy(GtkWidget *widget, gpointer data)
@@ -102,6 +118,18 @@ match_tab_by_jid(gconstpointer elem, gconstpointer jid)
 } /* match_tab_by_jid */
 
 static void
+reset_tab_title(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
+{	
+	GtkWidget *child;
+	Chattab *tab;
+	child = gtk_notebook_get_nth_page(b, n);
+	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
+	if(tab) { /* just in case */
+		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
+	}
+} /* reset_tab_title */
+
+static void
 scroll_tab_down(Chattab *tab)
 {
 	GtkAdjustment *adj;
@@ -146,9 +174,9 @@ tab_entry_handler(GtkWidget *e, gpointer p)
 void
 ui_create_tab(Chattab *tab)
 {
-	GtkWidget *vbox, *tview, *label;
+	GtkWidget *tview;
 	/* creating GtkLabel for the tab title */
-	label = gtk_label_new(tab->title);
+	tab->label = gtk_label_new(tab->title);
 	/* creating GtkTextView for status messages */
 	tview = gtk_text_view_new();
 	tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tview));
@@ -169,15 +197,17 @@ ui_create_tab(Chattab *tab)
 	g_signal_connect(G_OBJECT(tab->entry), "activate",
 					G_CALLBACK(tab_entry_handler), (void *)tab);
 	/* some vbox to put it together */
-	vbox = gtk_vbox_new(FALSE, 0);
+	tab->vbox = gtk_vbox_new(FALSE, 0);
+	/* this will help us finding Chattab struct by the child widget */
+	g_object_set_data(G_OBJECT(tab->vbox), "chattab-data", tab);
 	/* now let's put it all together */
-	gtk_container_add(GTK_CONTAINER(vbox), tab->scrolled);
-	gtk_container_add(GTK_CONTAINER(vbox), tab->entry);
-	gtk_box_set_child_packing(GTK_BOX(vbox), tab->entry, FALSE,
+	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->scrolled);
+	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->entry);
+	gtk_box_set_child_packing(GTK_BOX(tab->vbox), tab->entry, FALSE,
 								FALSE, 0, GTK_PACK_START);
-	gtk_widget_show_all(vbox);
+	gtk_widget_show_all(tab->vbox);
 	/* aaand, launch! */
-	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), vbox, label);
+	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, tab->label);
 	tabs = g_slist_prepend(tabs, tab);
 } /* ui_create_tab */
 
@@ -223,6 +253,9 @@ ui_setup(int *argc, char **argv[])
 	/*setting up the more exciting ones*/
 	setup_cbox(status_cbox);
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(nbook), TRUE);
+	/*signal for reseting (unbolding) tab titles when switched to 'em*/
+	g_signal_connect(G_OBJECT(nbook), "switch-page",
+					G_CALLBACK(reset_tab_title), NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 									GTK_POLICY_AUTOMATIC,
 									GTK_POLICY_AUTOMATIC);
@@ -297,5 +330,10 @@ ui_tab_print_message(const char *jid, const char *msg)
 	str = g_string_new("<-- ");
 	g_string_append_printf(str, "%s\n", msg);
 	append_to_tab(tab, str->str);
+	/* bolding tab title if it's not the status tab
+	 * (the function will check whether the tab is active or not,
+	 * we don't care about this) */
+	if(tab->jid)
+		bold_tab_title(tab);
 	g_string_free(str, TRUE);
 } /* ui_tab_print_message */

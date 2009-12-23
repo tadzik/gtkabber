@@ -43,6 +43,8 @@ typedef struct {
 	char *title;
 	GtkTextBuffer *buffer;
 	GtkWidget *entry;
+	GtkWidget *label;
 	GtkWidget *scrolled;
+	GtkWidget *vbox; /*GtkNotebook's child widget*/
 } Chattab;
 #endif
