@@ -275,7 +275,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 			res->status_msg = strdup(buf);
 		}
 	}
-	ui_status_print("%s/%s is now %s (%s)\n", jid, resname,
+	ui_status_print("%s/%s is now %s (%s)\n", sb->name, resname,
 					xmpp_status_readable(res->status),
 					(res->status_msg) ? res->status_msg : "");
 	ui_roster_update(sb->jid, res->status);
