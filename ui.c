@@ -58,6 +58,7 @@ tab_notify(Chattab *t)
 {
 	GString *markup;
 	GtkWidget *activechild;
+	set_wm_urgency(); /*this is done even if the tab is active*/
 	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
 					gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
 	if(activechild == t->vbox)
@@ -67,7 +68,6 @@ tab_notify(Chattab *t)
 	g_string_printf(markup, "<b>%s</b>", t->title);
 	gtk_label_set_markup(GTK_LABEL(t->label), markup->str);
 	g_string_free(markup, TRUE);
-	set_wm_urgency();
 } /* tab_notify */
 
 static void
