@@ -10,7 +10,7 @@
 #include "commands.h"
 
 /* functions */
-static void append_to_tab(Chattab *, const char *, ...);
+static void append_to_tab(Chattab *, const char *);
 static void destroy(GtkWidget *, gpointer);
 static Chattab *find_tab_by_jid(const char *);
 static void free_all_tabs(void);
@@ -28,13 +28,13 @@ void ui_tab_print_message(const char *, const char *);
 /*************/
 
 /* global variables */
+Chattab *status_tab;
 GtkWidget *nbook, *status_cbox, *status_entry;
-GtkTextBuffer *status_buffer;
 GSList *tabs;
 /********************/
 
 static void
-append_to_tab(Chattab *t, const char *s, ...)
+append_to_tab(Chattab *t, const char *s)
 {
 	/* this could be the base for ui_status_print, but I haven't
 	 * yet figured out any way to reuse code. TODO? */
@@ -42,15 +42,12 @@ append_to_tab(Chattab *t, const char *s, ...)
 	time_t now;
 	char tstamp[12];
 	GString *str;
-	va_list ap;
-	va_start(ap, s);
 	now = time(NULL);
 	gtk_text_buffer_get_end_iter(t->buffer, &i);
 	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S] ", localtime(&now));
 	str = g_string_new(tstamp);
-	g_string_append_vprintf(str, s, ap);
+	g_string_append(str, s);
 	gtk_text_buffer_insert(t->buffer, &i, str->str, str->len);
-	va_end(ap);
 	g_string_free(str, TRUE);
 	scroll_tab_down(t);
 } /* append_to_tab */
@@ -89,7 +86,8 @@ static void
 free_tab(gpointer t, gpointer u)
 {
 	Chattab *tab = (Chattab *)t;
-	free(tab->jid);
+	if(tab->jid)
+		free(tab->jid);
 	free(tab->title);
 } /* free_tab */
 
@@ -125,11 +123,15 @@ setup_cbox(GtkWidget *cbox)
 static void
 tab_entry_handler(GtkWidget *e, gpointer p)
 {
+	Chattab *tab = (Chattab *)p;
 	const char *input = gtk_entry_get_text(GTK_ENTRY(e));
-	if(p) {
-		Chattab *tab = (Chattab *)p;
+	if(tab->jid) {
+		GString *str;
 		xmpp_send_message(tab->jid, input);
-		append_to_tab(tab, "--> %s\n", input);
+		str = g_string_new("--> ");
+		g_string_append_printf(str, "%s\n", input);
+		append_to_tab(tab, str->str);
+		g_string_free(str, TRUE);
 	} else {
 		if(commands_exec(input)) {
 			ui_status_print("Error: unknown command\n");
@@ -141,62 +143,39 @@ tab_entry_handler(GtkWidget *e, gpointer p)
 void
 ui_create_tab(Chattab *tab)
 {
-	/*FIXME: All these can be probably simplified somehow. Think about it*/
-	/* entry is only for status tab. Can we get rid of it? TODO */
-	GtkWidget *vbox, *tview, *scrolled, *label, *entry;
+	GtkWidget *vbox, *tview, *label;
 	/* creating GtkLabel for the tab title */
-	label = gtk_label_new((tab) ? tab->title : "Status");
+	label = gtk_label_new(tab->title);
 	/* creating GtkTextView for status messages */
 	tview = gtk_text_view_new();
-	if(tab) {
-		tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tview));
-		g_printerr("Creating tab for %s\n", tab->jid);
-	} else {
-		status_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tview));
-	}
+	tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tview));
+	g_printerr("Creating tab for %s\n", tab->jid);
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(tview), FALSE);
 	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(tview), FALSE);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tview), GTK_WRAP_WORD);
 	/* we're putting this in a scrolled window */
-	if(tab) {
-		tab->scrolled = gtk_scrolled_window_new(NULL, NULL);
-		scrolled = tab->scrolled;
-	} else {
-		scrolled = gtk_scrolled_window_new(NULL, NULL);
-	}
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled),
+	tab->scrolled = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tab->scrolled),
 									GTK_POLICY_AUTOMATIC,
 									GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(scrolled),
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
 											tview);
 	/* setting up the entry field */
-	if(tab) {
-		tab->entry = gtk_entry_new();
-		entry = tab->entry;
-	} else {
-		entry = gtk_entry_new();
-	}
+	tab->entry = gtk_entry_new();
 	/* Sending messages/running commands, depending on a tab type */
-	if(tab) {
-		g_signal_connect(G_OBJECT(entry), "activate",
-						G_CALLBACK(tab_entry_handler), (void *)tab);
-	} else {
-		g_signal_connect(G_OBJECT(entry), "activate",
-						G_CALLBACK(tab_entry_handler), NULL);
-	}
+	g_signal_connect(G_OBJECT(tab->entry), "activate",
+					G_CALLBACK(tab_entry_handler), (void *)tab);
 	/* some vbox to put it together */
 	vbox = gtk_vbox_new(FALSE, 0);
 	/* now let's put it all together */
-	gtk_container_add(GTK_CONTAINER(vbox), scrolled);
-	gtk_container_add(GTK_CONTAINER(vbox), entry);
-	gtk_box_set_child_packing(GTK_BOX(vbox), entry, FALSE, FALSE,
-								0, GTK_PACK_START);
+	gtk_container_add(GTK_CONTAINER(vbox), tab->scrolled);
+	gtk_container_add(GTK_CONTAINER(vbox), tab->entry);
+	gtk_box_set_child_packing(GTK_BOX(vbox), tab->entry, FALSE,
+								FALSE, 0, GTK_PACK_START);
 	gtk_widget_show_all(vbox);
 	/* aaand, launch! */
 	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), vbox, label);
-	if(tab) {
-		tabs = g_slist_prepend(tabs, tab);
-	}
+	tabs = g_slist_prepend(tabs, tab);
 } /* ui_create_tab */
 
 XmppStatus
@@ -244,7 +223,11 @@ ui_setup(int *argc, char **argv[])
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 									GTK_POLICY_AUTOMATIC,
 									GTK_POLICY_AUTOMATIC);
-	ui_create_tab(NULL);
+	/*including status tab*/
+	status_tab = malloc(sizeof(Chattab));
+	status_tab->jid = NULL;
+	status_tab->title = strdup("Status");
+	ui_create_tab(status_tab);
 	/*packing*/
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), roster);
 	gtk_container_add(GTK_CONTAINER(window), hpaned);
@@ -270,17 +253,11 @@ void
 ui_status_print(const char *msg, ...)
 {
 	va_list ap;
-	GtkTextIter i;
-	time_t now;
-	char tstamp[12];
 	GString *str;
 	va_start(ap, msg);
-	now = time(NULL);
-	gtk_text_buffer_get_end_iter(status_buffer, &i);
-	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S] ", localtime(&now));
-	str = g_string_new(tstamp);
+	str = g_string_new(NULL);
 	g_string_append_vprintf(str, msg, ap);
-	gtk_text_buffer_insert(status_buffer, &i, str->str, str->len);
+	append_to_tab(status_tab, str->str);
 	va_end(ap);
 	g_string_free(str, TRUE);
 } /* ui_status_print */
