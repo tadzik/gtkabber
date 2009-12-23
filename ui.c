@@ -95,6 +95,9 @@ static gint
 match_tab_by_jid(gconstpointer elem, gconstpointer jid)
 {
 	Chattab *tab = (Chattab *)elem;
+	/*status tab case*/
+	if(!tab->jid)
+		return -1;
 	return strcmp(tab->jid, jid);
 } /* match_tab_by_jid */
 

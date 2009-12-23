@@ -209,6 +209,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	} else {
 		/* no resource - who needs such presence? */
 		/* TODO: Shan't we set him offline if he's not? */
+		g_printerr("Got presence with no resource, ignoring\n");
 		return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 	}
 	g_printerr("Got presence from %s\n", jid);
@@ -231,6 +232,8 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	}
 	child = lm_message_node_get_child(m->node, "show");
 	if(!child) {
+		/* no "show" tag, so no specific status is to be set
+	 	* checking whether it's online or offline */
 		buf = lm_message_node_get_attribute(m->node, "type");
 		if(!buf) {
 			res->status = STATUS_ONLINE;	
@@ -244,6 +247,8 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 			}
 		}
 	} else {
+		/* it's some specific status
+		 * (or at least I hope so :})*/
 		buf = lm_message_node_get_value(child);
 		if(!strcmp(buf, "away")) res->status = STATUS_AWAY;
 		else if(!strcmp(buf, "chat")) res->status = STATUS_FFC;
@@ -258,8 +263,10 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	child = lm_message_node_get_child(m->node, "priority");
 	if(child)
 		res->priority = atoi(lm_message_node_get_value(child));
-	if(res->status_msg)
+	if(res->status_msg) {
 		free(res->status_msg);
+		res->status_msg = NULL;
+	}
 	child = lm_message_node_get_child(m->node, "status");
 	if (child) {
 		buf = lm_message_node_get_value(child);
