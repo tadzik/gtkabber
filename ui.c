@@ -190,7 +190,6 @@ ui_create_tab(Chattab *tab)
 	/* creating GtkTextView for status messages */
 	tview = gtk_text_view_new();
 	tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tview));
-	g_printerr("Creating tab for %s\n", tab->jid);
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(tview), FALSE);
 	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(tview), FALSE);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tview), GTK_WRAP_WORD);

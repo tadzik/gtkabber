@@ -207,12 +207,9 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		jid = strndup(buf, sep-buf);
 		resname = strdup(sep+1);
 	} else {
-		/* no resource - who needs such presence? */
-		/* TODO: Shan't we set him offline if he's not? */
-		g_printerr("Got presence with no resource, ignoring\n");
-		return LM_HANDLER_RESULT_REMOVE_MESSAGE;
+		jid = strdup(buf);
+		resname = strdup("default");
 	}
-	g_printerr("Got presence from %s\n", jid);
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
 		g_printerr("Buddy %s not found in roster, exiting\n", jid);
@@ -261,8 +258,12 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		}
 	}
 	child = lm_message_node_get_child(m->node, "priority");
-	if(child)
+	if(child) {
 		res->priority = atoi(lm_message_node_get_value(child));
+	} else {
+		g_printerr("No priority given, using 0 as default\n");
+		res->priority = 0;
+	}
 	if(res->status_msg) {
 		free(res->status_msg);
 		res->status_msg = NULL;
