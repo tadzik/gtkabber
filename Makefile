@@ -11,7 +11,7 @@ LDFLAGS=$(LIBS)
 
 all: main
 
-commands.o: ui.h
+commands.o: commands.c ui.h
 	@echo "Compiling commands.c"
 	@$(CC) $(CFLAGS) -c commands.c
 

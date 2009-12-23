@@ -11,6 +11,7 @@
 
 /* functions */
 static void append_to_tab(Chattab *, const char *);
+static void cbox_changed_cb(GtkComboBox *, gpointer);
 static void tab_notify(Chattab *);
 static void destroy(GtkWidget *, gpointer);
 static Chattab *find_tab_by_jid(const char *);
@@ -26,6 +27,8 @@ void ui_create_tab(Chattab *);
 XmppStatus ui_get_status(void);
 const char *ui_get_status_msg(void);
 void ui_setup(int *, char ***);
+void ui_set_status(XmppStatus);
+void ui_set_status_msg(const char *);
 void ui_status_print(const char *msg, ...);
 void ui_tab_print_message(const char *, const char *);
 /*************/
@@ -52,6 +55,12 @@ append_to_tab(Chattab *t, const char *s)
 	g_string_free(str, TRUE);
 	scroll_tab_down(t);
 } /* append_to_tab */
+
+static void
+cbox_changed_cb(GtkComboBox *e, gpointer p)
+{
+	xmpp_set_status(ui_get_status());
+} /* cbox_changed_cb */
 
 static void
 tab_notify(Chattab *t)
@@ -150,7 +159,7 @@ setup_cbox(GtkWidget *cbox)
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Offline");
 	gtk_combo_box_set_active(GTK_COMBO_BOX(cbox), 0);
 	g_signal_connect(G_OBJECT(cbox), "changed",
-					G_CALLBACK(xmpp_set_status), NULL);
+					G_CALLBACK(cbox_changed_cb), NULL);
 } /* setup_cbox */
 
 static void
@@ -293,6 +302,19 @@ ui_setup(int *argc, char **argv[])
 	/*go go go!*/
 	gtk_widget_show_all(window);
 } /* ui_setup */
+
+void
+ui_set_status(XmppStatus s)
+{
+	gtk_combo_box_set_active(GTK_COMBO_BOX(status_cbox), s);
+} /* ui_set_status */
+
+void
+ui_set_status_msg(const char *m)
+{
+	gtk_entry_set_text(GTK_ENTRY(status_entry), m);
+	xmpp_set_status(ui_get_status());
+} /* ui_set_status_msg */
 
 void
 ui_status_print(const char *msg, ...)

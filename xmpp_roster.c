@@ -133,10 +133,8 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 		}
 		attr = lm_message_node_get_attribute(item, "jid");
 		/* Checking if we don't have this guy on our roster */
-		if(xmpp_roster_find_by_jid(attr)) {
-			g_printerr("Buddy %s already found, neeext!\n", attr);
+		if(xmpp_roster_find_by_jid(attr))
 			continue;
-		}
 		entry = (Buddy *)malloc(sizeof(Buddy));
 		entry->jid = strdup(attr ? attr : "");
 		attr = lm_message_node_get_attribute(item, "name");

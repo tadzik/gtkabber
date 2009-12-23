@@ -1,5 +1,4 @@
 #include <loudmouth/loudmouth.h>
-#include <gtk/gtk.h> /*fucking callback args*/
 #include <string.h> /*xmpp_iq_handler needs this, so far only it*/
 #include <stdlib.h> /*malloc*/
 #include "commands.h"
@@ -32,7 +31,7 @@ LmHandlerResult xmpp_mesg_handler(LmMessageHandler *, LmConnection *,
 									LmMessage *, gpointer);
 LmHandlerResult xmpp_pres_handler(LmMessageHandler *, LmConnection *,
 									LmMessage *, gpointer);
-void xmpp_set_status(GtkEntry *, gpointer);
+void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
 static char *xmpp_status_to_str(XmppStatus);
 static char *xmpp_status_readable(XmppStatus);
@@ -170,7 +169,7 @@ xmpp_iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		if(strcmp(lm_message_node_get_attribute(query, "xmlns"),
 					"jabber:iq:roster") == 0) {
 			xmpp_roster_parse_query(c, query);
-			xmpp_set_status(NULL, NULL);
+			xmpp_set_status(ui_get_status());
 		}
 	}
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
@@ -212,7 +211,6 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	}
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
-		g_printerr("Buddy %s not found in roster, exiting\n", jid);
 		if(jid)
 			free(jid);
 		if(resname)
@@ -258,12 +256,10 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		}
 	}
 	child = lm_message_node_get_child(m->node, "priority");
-	if(child) {
+	if(child)
 		res->priority = atoi(lm_message_node_get_value(child));
-	} else {
-		g_printerr("No priority given, using 0 as default\n");
+	else
 		res->priority = 0;
-	}
 	if(res->status_msg) {
 		free(res->status_msg);
 		res->status_msg = NULL;
@@ -298,19 +294,18 @@ xmpp_send_message(const char *to, const char *msg)
 }
 
 void
-xmpp_set_status(GtkEntry *entry, gpointer data)
+xmpp_set_status(XmppStatus s)
 {
 	LmMessage *p;
 	GError *err = NULL;
 	const char *status, *status_msg;
-	XmppStatus s;
 	if(!connection || lm_connection_get_state(connection)
 						!= LM_CONNECTION_STATE_AUTHENTICATED) {
+		g_printerr("xmpp_set_status: I have to reconnect");
 		connect();	
 		/*succesful authentication will send us here again*/
 		return;
 	}
-	s = ui_get_status();
 	status_msg = ui_get_status_msg();
 	p = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
 									(s == STATUS_OFFLINE)
