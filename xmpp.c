@@ -8,12 +8,12 @@
 #include "types.h"
 
 /* fetched from commands.c */
-extern char conf_passwd[];
+extern gchar *conf_passwd;
 extern int conf_port;
-extern char conf_priority[];
-extern char conf_resource[];
-extern char conf_server[];
-extern char conf_username[];
+extern gchar *conf_priority;
+extern gchar *conf_res;
+extern gchar *conf_server;
+extern gchar *conf_username;
 /*************************/
 
 /* functions */
@@ -114,8 +114,8 @@ connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 	GError *err = NULL;
 	if(success) {
 		if(!lm_connection_authenticate(c, conf_username, conf_passwd,
-										conf_resource, connection_auth_cb,
-										NULL, NULL,	&err)) {
+										(conf_res) ? conf_res : "gtkabber",
+										connection_auth_cb, NULL, NULL, &err)) {
 			ui_status_print("Error authenticating: %s\n", err->message);
 			g_error_free(err);
 		} else {
@@ -145,11 +145,13 @@ xmpp_cleanup() {
 	disconnect();
 	if(connection) lm_connection_unref(connection);
 	xmpp_roster_cleanup();
+	config_cleanup();
 }
 
 void
 xmpp_init(void) {
-	if(commands_parse_rcfile() == 1) {
+	int st;
+	if((st = config_parse_rcfile()) == 1) {
 		ui_status_print("Could not establish connection: configuration missing\n");
 	}
 	connection = lm_connection_new(conf_server);
@@ -157,7 +159,7 @@ xmpp_init(void) {
 	lm_connection_set_keep_alive_rate(connection, 30);
 	lm_connection_set_disconnect_function(connection, connection_disconnect_cb,
 											NULL, NULL);
-	connect();
+	if(!st) connect();
 }
 
 LmHandlerResult

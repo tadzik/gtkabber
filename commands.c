@@ -6,6 +6,7 @@
 #include <stdlib.h> /*for this damn atoi... come on!*/
 
 /* functions */
+void config_cleanup(void);
 int commands_exec(const char *);
 int config_parse_rcfile(void);
 static int set(const char *);
@@ -13,13 +14,24 @@ static void set_status(const char *);
 /*************/
 
 /* global vars */
-char conf_passwd[32];
+gchar *conf_passwd = NULL;
 int conf_port = 0;
-char conf_priority[3] = "0"; /*it's char, for we are passing it as char in lm_ functions*/
-char conf_resource[32] = "gtkabber";
-char conf_server[32];
-char conf_username[32];
+gchar *conf_priority = NULL; /*it's char, for we are passing it as char in lm_ functions*/
+gchar *conf_res= NULL;
+gchar *conf_server = NULL;
+gchar *conf_username = NULL;
 /***************/
+
+void
+config_cleanup(void)
+{
+	/* g_free() is smart enough to return if the pointer is NULL */
+	g_free(conf_passwd);
+	g_free(conf_priority);
+	g_free(conf_res);
+	g_free(conf_server);
+	g_free(conf_username);
+}
 
 int
 commands_exec(const char *command)
@@ -35,7 +47,7 @@ commands_exec(const char *command)
 } /* commands_exec */
 
 int
-commands_parse_rcfile(void) 
+config_parse_rcfile(void) 
 {
 	GString *path;
 	gchar *contents;
@@ -66,8 +78,9 @@ commands_parse_rcfile(void)
 		g_strfreev(lines);
 	}
 	g_string_free(path, TRUE);
-	return 0;
-} /* commands_parse_rcfile */
+	if(conf_server && conf_username && conf_passwd) return 0;
+	return 1;
+} /* config_parse_rcfile */
 
 static int 
 set(const char *params)
@@ -80,30 +93,33 @@ set(const char *params)
 	arg = index(params, ' ');
 	if(!arg++)
 		return 2;
+	/*
+	 * line: set server jabber.org
+	 *           ^      ^      
+	 *         params  arg
+	 */
 	if(strstr(params, "server") == params) {
-		strncpy(conf_server, arg, sizeof(conf_server));
+		g_free(conf_server);
+		conf_server = g_strdup(arg);
 	} else if(strstr(params, "username") == params) {
-		strncpy(conf_username, arg, sizeof(conf_username));
+		g_free(conf_username);
+		conf_username = g_strdup(arg);
 	} else if(strstr(params, "passwd") == params) {
-		strncpy(conf_passwd, arg, sizeof(conf_passwd));
+		g_free(conf_passwd);
+		conf_passwd = g_strdup(arg);
 	} else if(strstr(params, "resource") == params) {
-		strncpy(conf_resource, arg, sizeof(conf_resource));
+		g_free(conf_res);
+		conf_res = g_strdup(arg);
 	} else if(strstr(params, "priority") == params) {
-		strncpy(conf_priority, arg, sizeof(conf_priority));
+		g_free(conf_priority);
+		conf_priority = g_strdup(arg);
 	} else if(strstr(params, "port") == params) {
-		char *port = index(params, ' ');
-		if(port)
-			conf_port = atoi(++port);
+		conf_port = atoi(arg);
 	} else if(strstr(params, "status ") == params) {
-		char *status = index(params, ' ');
-		if(status)
-			set_status(++status);
+		set_status(arg);
 	} else if(strstr(params, "status_msg") == params) {
-		char *msg = index(params, ' ');
-		if(msg)
-			ui_set_status_msg(++msg);
-	} else
-		return 1;
+		ui_set_status_msg(arg);
+	} else return 1;
 	return 0;
 } /* set */
 
