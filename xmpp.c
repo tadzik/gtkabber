@@ -46,11 +46,11 @@ static LmMessageHandler *mesg_handler;
 
 static void
 connect() {
-	GError *error = NULL;
+	GError *err = NULL;
 	if(!lm_connection_open(connection, (LmResultFunction)connection_open_cb,
-				             NULL, NULL, &error)) {
-	    ui_status_print("Error opening connection %s\n", error->message);
-	    g_error_free(error);
+				             NULL, NULL, &err)) {
+	    ui_status_print("Error opening connection %s\n", err->message);
+	    g_error_free(err);
 	} else {
 		ui_status_print("Connected to %s\n", conf_server);
 	}
@@ -111,13 +111,13 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 
 static void
 connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
-	GError *error = NULL;
+	GError *err = NULL;
 	if(success) {
 		if(!lm_connection_authenticate(c, conf_username, conf_passwd,
 										conf_resource, connection_auth_cb,
-										NULL, NULL,	&error)) {
-			ui_status_print("Error authenticating: %s\n", error->message);
-			g_error_free(error);
+										NULL, NULL,	&err)) {
+			ui_status_print("Error authenticating: %s\n", err->message);
+			g_error_free(err);
 		} else {
 			ui_status_print("Authenticated as %s\n", conf_username);
 		}

@@ -40,7 +40,7 @@ commands_parse_rcfile(void)
 	GString *path;
 	gchar *contents;
 	gchar **lines;
-	GError *err;
+	GError *err = NULL;
 	path = g_string_new(NULL);
 	g_string_append_printf(path, "%s/.config/gtkabberrc", g_getenv("HOME"));
 	/*loading file contents: gods bless glib*/
