@@ -8,7 +8,7 @@
 /* functions */
 void config_cleanup(void);
 int commands_exec(const char *);
-int config_parse_rcfile(void);
+void config_parse_rcfile(void);
 static int set(const char *);
 static void set_status(const char *);
 /*************/
@@ -46,7 +46,7 @@ commands_exec(const char *command)
 	return 0;
 } /* commands_exec */
 
-int
+void
 config_parse_rcfile(void) 
 {
 	GString *path;
@@ -78,8 +78,6 @@ config_parse_rcfile(void)
 		g_strfreev(lines);
 	}
 	g_string_free(path, TRUE);
-	if(conf_server && conf_username && conf_passwd) return 0;
-	return 1;
 } /* config_parse_rcfile */
 
 static int 
