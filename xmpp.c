@@ -19,18 +19,18 @@ extern gchar *conf_username;
 /* functions */
 static void connection_auth_cb(LmConnection *, gboolean, gpointer);
 static void connection_disconnect_cb(LmConnection *, LmDisconnectReason,
-										gpointer);
+                                     gpointer);
 static void connection_open_cb(LmConnection *, gboolean, gpointer);
 void xmpp_cleanup();
 static void disconnect();
 static void connect();
 void xmpp_init(void);
 LmHandlerResult xmpp_iq_handler(LmMessageHandler *, LmConnection *,
-								LmMessage *, gpointer);
+                                LmMessage *, gpointer);
 LmHandlerResult xmpp_mesg_handler(LmMessageHandler *, LmConnection *,
-									LmMessage *, gpointer);
+                                  LmMessage *, gpointer);
 LmHandlerResult xmpp_pres_handler(LmMessageHandler *, LmConnection *,
-									LmMessage *, gpointer);
+                                  LmMessage *, gpointer);
 void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
 static char *xmpp_status_to_str(XmppStatus);
@@ -47,9 +47,26 @@ static LmMessageHandler *mesg_handler;
 static void
 connect() {
 	GError *err = NULL;
+	if(!conf_server) {
+		ui_status_print("ERROR: Insufficient configuration, "
+		                "connecting aborted (server not set)\n");
+		return;
+	} else {
+		if(!lm_connection_get_server(connection))
+			lm_connection_set_server(connection, conf_server);
+	}
+	if(lm_connection_is_open(connection)) {
+		GError *err = NULL;
+		ui_status_print("WHOOPS: Connection was alredy opened, closing\n");
+		if(!lm_connection_close(connection, &err)) {
+			ui_status_print("Error closing connection: %s\n", err->message);
+			g_error_free(err);
+		}
+		
+	}
 	if(!lm_connection_open(connection, (LmResultFunction)connection_open_cb,
-				             NULL, NULL, &err)) {
-	    ui_status_print("Error opening connection %s\n", err->message);
+	                       NULL, NULL, &err)) {
+	    ui_status_print("Error opening connection: %s\n", err->message);
 	    g_error_free(err);
 	} else {
 		ui_status_print("Connected to %s\n", conf_server);
@@ -63,23 +80,23 @@ connection_auth_cb(LmConnection *c, gboolean success, gpointer udata) {
 	} else {
 		iq_handler = lm_message_handler_new(xmpp_iq_handler, NULL, NULL);
 		lm_connection_register_message_handler(c, iq_handler,
-												LM_MESSAGE_TYPE_IQ,
-												LM_HANDLER_PRIORITY_NORMAL);
+		                                       LM_MESSAGE_TYPE_IQ,
+		                                       LM_HANDLER_PRIORITY_NORMAL);
 		mesg_handler = lm_message_handler_new(xmpp_mesg_handler, NULL, NULL);
 		lm_connection_register_message_handler(c, mesg_handler,
-												LM_MESSAGE_TYPE_MESSAGE,
-												LM_HANDLER_PRIORITY_NORMAL);
+		                                       LM_MESSAGE_TYPE_MESSAGE,
+		                                       LM_HANDLER_PRIORITY_NORMAL);
 		pres_handler = lm_message_handler_new(xmpp_pres_handler, NULL, NULL);
 		lm_connection_register_message_handler(c, pres_handler,
-												LM_MESSAGE_TYPE_PRESENCE,
-												LM_HANDLER_PRIORITY_NORMAL);
+		                                       LM_MESSAGE_TYPE_PRESENCE,
+		                                       LM_HANDLER_PRIORITY_NORMAL);
 		xmpp_roster_request(c);	
 	}
 }
 
 static void
 connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
-							gpointer udata) {
+                         gpointer udata) {
 	switch(reason) {
 	case LM_DISCONNECT_REASON_OK:
 		ui_status_print("Connection closed as requested by user\n");
@@ -113,9 +130,18 @@ static void
 connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 	GError *err = NULL;
 	if(success) {
+		if(!conf_username) {
+			ui_status_print("ERROR: Insufficient configuration, "
+			                "authentication aborted (username not set)\n");
+			return;
+		} else if(!conf_passwd) {
+			ui_status_print("ERROR: Insufficient configuration, "
+			                "authentication aborted (password not set)\n");
+			return;
+		}
 		if(!lm_connection_authenticate(c, conf_username, conf_passwd,
-										(conf_res) ? conf_res : "gtkabber",
-										connection_auth_cb, NULL, NULL, &err)) {
+		                               (conf_res) ? conf_res : "gtkabber",
+		                               connection_auth_cb, NULL, NULL, &err)) {
 			ui_status_print("Error authenticating: %s\n", err->message);
 			g_error_free(err);
 		} else {
@@ -129,9 +155,9 @@ disconnect() {
 	LmMessage *m;
 	if(!connection)	return;
 	if(lm_connection_get_state(connection)
-		!= LM_CONNECTION_STATE_AUTHENTICATED) {
+	   != LM_CONNECTION_STATE_AUTHENTICATED) {
 		m = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
-										LM_MESSAGE_SUB_TYPE_UNAVAILABLE);
+		                                 LM_MESSAGE_SUB_TYPE_UNAVAILABLE);
 		lm_connection_send(connection, m, NULL);
 	}
 	if(lm_connection_is_open(connection)) {
@@ -150,16 +176,13 @@ xmpp_cleanup() {
 
 void
 xmpp_init(void) {
-	int st;
-	if((st = config_parse_rcfile()) == 1) {
-		ui_status_print("Could not establish connection: configuration missing\n");
-	}
-	connection = lm_connection_new(conf_server);
+	config_parse_rcfile();
+	connection = lm_connection_new(NULL);
 	/*TODO: Write this ssl thing*/
 	lm_connection_set_keep_alive_rate(connection, 30);
 	lm_connection_set_disconnect_function(connection, connection_disconnect_cb,
-											NULL, NULL);
-	if(!st) connect();
+	                                      NULL, NULL);
+	connect();
 }
 
 LmHandlerResult
@@ -169,7 +192,7 @@ xmpp_iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	query = lm_message_node_get_child(m->node, "query");
 	if(query) {
 		if(strcmp(lm_message_node_get_attribute(query, "xmlns"),
-					"jabber:iq:roster") == 0) {
+		          "jabber:iq:roster") == 0) {
 			xmpp_roster_parse_query(c, query);
 			xmpp_set_status(ui_get_status());
 		}
@@ -179,7 +202,7 @@ xmpp_iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 
 LmHandlerResult
 xmpp_mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
-					gpointer udata)
+                  gpointer udata)
 {
 	const char *from, *body;
 	LmMessageNode *bodynode;
@@ -195,7 +218,7 @@ xmpp_mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 
 LmHandlerResult
 xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
-					gpointer udata)
+                  gpointer udata)
 {
 	const char *buf;
 	char *jid, *resname, *sep;
@@ -239,7 +262,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 				res->status = STATUS_OFFLINE;
 			} else {
 				ui_status_print("Presence type '%s', oh lawd, what to do?\n",
-								buf);
+				                buf);
 				res->status = STATUS_OFFLINE;
 			}
 		}
@@ -253,7 +276,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		else if(!strcmp(buf, "dnd")) res->status = STATUS_DND;
 		else {
 			ui_status_print("WHOOPS: What is show '%s' supposed to mean?\n",
-							buf);
+		                   	buf);
 			res->status = STATUS_OFFLINE;
 		}
 	}
@@ -274,8 +297,8 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		}
 	}
 	ui_status_print("%s/%s is now %s (%s)\n", sb->name, resname,
-					xmpp_status_readable(res->status),
-					(res->status_msg) ? res->status_msg : "");
+	                xmpp_status_readable(res->status),
+	                (res->status_msg) ? res->status_msg : "");
 	ui_roster_update(sb->jid, res->status);
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 } /* xmpp_pres_handler */
@@ -286,7 +309,7 @@ xmpp_send_message(const char *to, const char *msg)
 	LmMessage *m;
 	GError *err = NULL;
 	m = lm_message_new_with_sub_type(to, LM_MESSAGE_TYPE_MESSAGE,
-									LM_MESSAGE_SUB_TYPE_CHAT);
+	                                 LM_MESSAGE_SUB_TYPE_CHAT);
 	lm_message_node_add_child(m->node, "body", msg);
 	if(!lm_connection_send(connection, m, &err)) {
 		ui_status_print("Error sending message: %s\n", err->message);
@@ -301,18 +324,17 @@ xmpp_set_status(XmppStatus s)
 	LmMessage *p;
 	GError *err = NULL;
 	const char *status, *status_msg;
-	if(!connection || lm_connection_get_state(connection)
-						!= LM_CONNECTION_STATE_AUTHENTICATED) {
-		g_printerr("xmpp_set_status: I have to reconnect");
+	if(!connection || (lm_connection_get_state(connection)
+                      != LM_CONNECTION_STATE_AUTHENTICATED)) {
 		connect();	
 		/*succesful authentication will send us here again*/
 		return;
 	}
 	status_msg = ui_get_status_msg();
 	p = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
-									(s == STATUS_OFFLINE)
-										? LM_MESSAGE_SUB_TYPE_UNAVAILABLE
-										: LM_MESSAGE_SUB_TYPE_AVAILABLE);
+	                                 (s == STATUS_OFFLINE)
+	                                 ? LM_MESSAGE_SUB_TYPE_UNAVAILABLE
+	                                 : LM_MESSAGE_SUB_TYPE_AVAILABLE);
 	lm_message_node_add_child(p->node, "priority", conf_priority);
 	status = xmpp_status_to_str(s);
 	if(status) {
