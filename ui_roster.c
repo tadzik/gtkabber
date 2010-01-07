@@ -65,7 +65,7 @@ compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
 		int ret;
 		gtk_tree_model_get(m, a, COL_NAME, &n1, -1);
 		gtk_tree_model_get(m, b, COL_NAME, &n2, -1);
-		ret = strcmp(n1, n2);
+		ret = g_strcmp0(n1, n2);
 		g_free(n1);
 		g_free(n2);
 		return ret;
@@ -120,7 +120,7 @@ static int
 match_entry_by_jid(gconstpointer e, gconstpointer j)
 {
 	UiBuddy *sb = (UiBuddy *)e;
-	if(strcmp(sb->jid, j) == 0)
+	if(g_strcmp0(sb->jid, j) == 0)
 		return 0;
 	return 1;
 } /* match_entry_by_jid */

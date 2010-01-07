@@ -191,8 +191,8 @@ xmpp_iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	LmMessageNode *query;
 	query = lm_message_node_get_child(m->node, "query");
 	if(query) {
-		if(strcmp(lm_message_node_get_attribute(query, "xmlns"),
-		          "jabber:iq:roster") == 0) {
+		if(g_strcmp0(lm_message_node_get_attribute(query, "xmlns"),
+		             "jabber:iq:roster") == 0) {
 			xmpp_roster_parse_query(c, query);
 			xmpp_set_status(ui_get_status());
 		}
@@ -256,7 +256,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		if(!buf) {
 			res->status = STATUS_ONLINE;	
 		} else {
-			if(strcmp(buf, "unavailable") == 0 || strcmp(buf, "error") == 0) {
+			if(g_strcmp0(buf, "unavailable") == 0 || g_strcmp0(buf, "error") == 0) {
 				res->status = STATUS_OFFLINE;
 			} else {
 				ui_status_print("Presence type '%s', oh lawd, what to do?\n",
@@ -268,10 +268,10 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		/* it's some specific status
 		 * (or at least I hope so :})*/
 		buf = lm_message_node_get_value(child);
-		if(!strcmp(buf, "away")) res->status = STATUS_AWAY;
-		else if(!strcmp(buf, "chat")) res->status = STATUS_FFC;
-		else if(!strcmp(buf, "xa")) res->status = STATUS_XA;
-		else if(!strcmp(buf, "dnd")) res->status = STATUS_DND;
+		if(!g_strcmp0(buf, "away")) res->status = STATUS_AWAY;
+		else if(!g_strcmp0(buf, "chat")) res->status = STATUS_FFC;
+		else if(!g_strcmp0(buf, "xa")) res->status = STATUS_XA;
+		else if(!g_strcmp0(buf, "dnd")) res->status = STATUS_DND;
 		else {
 			ui_status_print("WHOOPS: What is show '%s' supposed to mean?\n",
 		                   	buf);
@@ -279,10 +279,12 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		}
 	}
 	child = lm_message_node_get_child(m->node, "priority");
-	if(child)
-		res->priority = atoi(lm_message_node_get_value(child));
-	else
-		res->priority = 0;
+	if(child) {
+		/* Suprisingly, this is not always true.
+		 * Thanks to webczat, whose presences are so @!&^#! */
+		if(lm_message_node_get_value(child))
+			res->priority = atoi(lm_message_node_get_value(child));
+	} else res->priority = 0;
 	if(res->status_msg) {
 		g_free(res->status_msg);
 		res->status_msg = NULL;
@@ -338,7 +340,7 @@ xmpp_set_status(XmppStatus s)
 	if(status) {
 		lm_message_node_add_child(p->node, "show", status);
 	}
-	if(strcmp(status_msg, "") != 0)
+	if(g_strcmp0(status_msg, "") != 0)
 		lm_message_node_add_child(p->node, "status", status_msg);
 	if(!lm_connection_send(connection, p, &err)) {
 		ui_status_print("Error sending presence: %s\n", err->message);

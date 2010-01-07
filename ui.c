@@ -121,10 +121,9 @@ static gint
 match_tab_by_jid(gconstpointer elem, gconstpointer jid)
 {
 	Chattab *tab = (Chattab *)elem;
-	/*status tab case*/
-	if(!tab->jid)
-		return -1;
-	return strcmp(tab->jid, jid);
+	/* This alredy covers the status tab case,
+	 * as g_strcmp0 handles NULL string well */
+	return g_strcmp0(tab->jid, jid);
 } /* match_tab_by_jid */
 
 static void

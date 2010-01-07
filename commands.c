@@ -124,10 +124,10 @@ set(const char *params)
 static void
 set_status(const char *s)
 {
-	if(strcmp(s, "online") == 0) ui_set_status(STATUS_ONLINE);
-	else if(strcmp(s, "away") == 0) ui_set_status(STATUS_AWAY);
-	else if(strcmp(s, "xa") == 0) ui_set_status(STATUS_XA);
-	else if(strcmp(s, "ffc") == 0) ui_set_status(STATUS_FFC);
-	else if(strcmp(s, "dnd") == 0) ui_set_status(STATUS_DND);
-	else if(strcmp(s, "offline") == 0) ui_set_status(STATUS_OFFLINE);
+	if(g_strcmp0(s, "online") == 0) ui_set_status(STATUS_ONLINE);
+	else if(g_strcmp0(s, "away") == 0) ui_set_status(STATUS_AWAY);
+	else if(g_strcmp0(s, "xa") == 0) ui_set_status(STATUS_XA);
+	else if(g_strcmp0(s, "ffc") == 0) ui_set_status(STATUS_FFC);
+	else if(g_strcmp0(s, "dnd") == 0) ui_set_status(STATUS_DND);
+	else if(g_strcmp0(s, "offline") == 0) ui_set_status(STATUS_OFFLINE);
 } /* set_status */

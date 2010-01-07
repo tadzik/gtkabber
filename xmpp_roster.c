@@ -47,14 +47,14 @@ static gint
 match_by_jid(gconstpointer entry, gconstpointer jid)
 {
 	Buddy *foo = (Buddy *)entry;
-	return strcmp(foo->jid, jid);
+	return g_strcmp0(foo->jid, jid);
 } /* match_by_jid */
 
 static gint
 match_res_by_name(gconstpointer res, gconstpointer name)
 {
 	Resource *foo = (Resource *)res;
-	return strcmp(foo->name, name);
+	return g_strcmp0(foo->name, name);
 } /* match_res_by_name */
 
 void
@@ -124,7 +124,7 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 		LmMessageNode *node;
 		/* first, let's check if it isn't just a delete request */
 		attr = lm_message_node_get_attribute(item, "subscription");
-		if(strcmp(attr, "remove") == 0) {
+		if(g_strcmp0(attr, "remove") == 0) {
 			/*TODO: Delete this guy from our roster*/
 			g_printerr("Removing somebody from roster\n");
 			continue;
@@ -143,13 +143,13 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 			                      strchr(entry->jid, '@') - entry->jid);
 		}
 		attr = lm_message_node_get_attribute(item, "subscription");
-		if(strcmp(attr, "both") == 0)
+		if(g_strcmp0(attr, "both") == 0)
 			entry->subscription = BOTH;
-		else if(strcmp(attr, "to") == 0)
+		else if(g_strcmp0(attr, "to") == 0)
 			entry->subscription = TO;
-		else if(strcmp(attr, "from") == 0)
+		else if(g_strcmp0(attr, "from") == 0)
 			entry->subscription = FROM;
-		else if(strcmp(attr, "none") == 0)
+		else if(g_strcmp0(attr, "none") == 0)
 			entry->subscription = NONE;
 		/* "remove" has alredy been covered */
 		node = lm_message_node_get_child(item, "group");
