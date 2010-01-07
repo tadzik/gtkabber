@@ -70,9 +70,9 @@ config_parse_rcfile(void)
 			} else {
 				int status = commands_exec(lines[i]);
 				if(status == 1) ui_status_print("Line %d: parsing failed: "
-												"%s\n", i+1, lines[i]);
+				                                "%s\n", i+1, lines[i]);
 				else if(status == 2) ui_status_print("Line %d: unknown command:"
-													" '%s'\n", i+1, lines[i]);
+				                                     " '%s'\n", i+1, lines[i]);
 			}
 		}
 		g_strfreev(lines);

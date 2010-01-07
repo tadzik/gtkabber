@@ -69,7 +69,7 @@ tab_notify(Chattab *t)
 	GtkWidget *activechild;
 	set_wm_urgency(); /*this is done even if the tab is active*/
 	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
-					gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
+	               gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
 	if(activechild == t->vbox)
 		/*this tab's alredy active*/
 		return;
@@ -159,7 +159,7 @@ setup_cbox(GtkWidget *cbox)
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Offline");
 	gtk_combo_box_set_active(GTK_COMBO_BOX(cbox), 0);
 	g_signal_connect(G_OBJECT(cbox), "changed",
-					G_CALLBACK(cbox_changed_cb), NULL);
+	                 G_CALLBACK(cbox_changed_cb), NULL);
 } /* setup_cbox */
 
 static void
@@ -205,15 +205,15 @@ ui_create_tab(Chattab *tab)
 	/* we're putting this in a scrolled window */
 	tab->scrolled = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tab->scrolled),
-									GTK_POLICY_AUTOMATIC,
-									GTK_POLICY_AUTOMATIC);
+	                               GTK_POLICY_AUTOMATIC,
+	                               GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
-											tview);
+	                                      tview);
 	/* setting up the entry field */
 	tab->entry = gtk_entry_new();
 	/* Sending messages/running commands, depending on a tab type */
 	g_signal_connect(G_OBJECT(tab->entry), "activate",
-					G_CALLBACK(tab_entry_handler), (void *)tab);
+	                 G_CALLBACK(tab_entry_handler), (void *)tab);
 	/* some vbox to put it together */
 	tab->vbox = gtk_vbox_new(FALSE, 0);
 	/* this will help us finding Chattab struct by the child widget */
@@ -222,7 +222,7 @@ ui_create_tab(Chattab *tab)
 	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->scrolled);
 	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->entry);
 	gtk_box_set_child_packing(GTK_BOX(tab->vbox), tab->entry, FALSE,
-								FALSE, 0, GTK_PACK_START);
+	                          FALSE, 0, GTK_PACK_START);
 	gtk_widget_show_all(tab->vbox);
 	/* aaand, launch! */
 	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, tab->label);
@@ -275,8 +275,8 @@ ui_setup(int *argc, char **argv[])
 	g_signal_connect(G_OBJECT(nbook), "switch-page",
 					G_CALLBACK(reset_tab_title), NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
-									GTK_POLICY_AUTOMATIC,
-									GTK_POLICY_AUTOMATIC);
+	                               GTK_POLICY_AUTOMATIC,
+	                               GTK_POLICY_AUTOMATIC);
 	/*including status tab*/
 	status_tab = malloc(sizeof(Chattab));
 	status_tab->jid = NULL;
@@ -291,14 +291,14 @@ ui_setup(int *argc, char **argv[])
 	gtk_container_add(GTK_CONTAINER(leftbox), status_entry);
 	gtk_paned_add2(GTK_PANED(hpaned), nbook);
 	gtk_box_set_child_packing(GTK_BOX(leftbox), status_cbox,
-								FALSE, FALSE, 0, GTK_PACK_START);
+	                          FALSE, FALSE, 0, GTK_PACK_START);
 	gtk_box_set_child_packing(GTK_BOX(leftbox), status_entry,
-								FALSE, FALSE, 0, GTK_PACK_START);
+	                          FALSE, FALSE, 0, GTK_PACK_START);
 	/*signals*/
 	g_signal_connect(G_OBJECT(window), "destroy",
-					G_CALLBACK(destroy), NULL);
+	                 G_CALLBACK(destroy), NULL);
 	g_signal_connect(G_OBJECT(status_entry), "activate",
-					G_CALLBACK(xmpp_set_status), NULL);
+	                 G_CALLBACK(xmpp_set_status), NULL);
 	/*go go go!*/
 	gtk_widget_show_all(window);
 } /* ui_setup */
@@ -341,8 +341,8 @@ ui_tab_print_message(const char *jid, const char *msg)
 		slash = index(jid, '/');
 		if(!slash) {
 			g_printerr("ui_tab_print_message: "
-						"How do I get message from someone with no resource? "
-						"Who the fuck is %s supposed to be? Shit!\n", jid);
+			           "How do I get message from someone with no resource? "
+			           "Who the fuck is %s supposed to be? Shit!\n", jid);
 			return;
 		}
 		shortjid = strndup(jid, slash-jid);
@@ -350,7 +350,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 		sb = xmpp_roster_find_by_jid(shortjid);
 		if(!sb) {
 			g_printerr("Buddy %s not found. You've fucked pointers my friend :>\n",
-						shortjid);
+			           shortjid);
 			return;
 		}
 		tab = malloc(sizeof(Chattab));

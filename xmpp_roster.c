@@ -61,9 +61,8 @@ match_res_by_name(gconstpointer res, gconstpointer name)
 void
 xmpp_roster_add_resource(Buddy *b, Resource *r)
 {
-	if(!xmpp_roster_find_res_by_name(b, r->name)) {
+	if(!xmpp_roster_find_res_by_name(b, r->name))
 		b->resources = g_slist_prepend(b->resources, r);
-	}
 } /* xmpp_roster_add_resource */
 
 void
@@ -104,7 +103,7 @@ xmpp_roster_get_best_resname(const char *jid)
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
 		g_printerr("xmpp_roster_get_best_resname: Not found? "
-					"Are you shitting me? What the fuck man?");
+		           "Are you shitting me? What the fuck man?");
 		return NULL;
 	}
 	for(elem = sb->resources; elem; elem = elem->next) {
@@ -120,7 +119,7 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 {
 	LmMessageNode *item;
 	for(item = lm_message_node_get_child(q, "item"); item;
-		item = item->next) {
+	    item = item->next) {
 		Buddy *entry;	
 		const char *attr;
 		LmMessageNode *node;
@@ -142,7 +141,7 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 			entry->name = strdup(attr);
 		} else {
 			entry->name = strndup(entry->jid,
-								strchr(entry->jid, '@') - entry->jid);
+			                      strchr(entry->jid, '@') - entry->jid);
 		}
 		attr = lm_message_node_get_attribute(item, "subscription");
 		if(strcmp(attr, "both") == 0)
@@ -173,7 +172,7 @@ xmpp_roster_request(LmConnection *conn)
 	LmMessageNode *query;
 	GError *err = NULL;
 	req = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_IQ,
-										LM_MESSAGE_SUB_TYPE_GET);
+	                                   LM_MESSAGE_SUB_TYPE_GET);
 	query = lm_message_node_add_child(req->node, "query", NULL);
 	/*TODO: Make sure if I don't need to free this*/
 	lm_message_node_set_attributes(query, "xmlns", "jabber:iq:roster", NULL);

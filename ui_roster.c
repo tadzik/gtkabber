@@ -25,14 +25,14 @@ static GdkPixbuf *dnd_icon;
 /********/
 /* functions*/
 static gint compare_rows(GtkTreeModel *, GtkTreeIter *,
-							GtkTreeIter *, gpointer);
+                         GtkTreeIter *, gpointer);
 static int get_pixbuf_priority(GdkPixbuf *);
 static GdkPixbuf *load_icon(const char *);
 static void load_iconset(void);
 static int match_entry_by_iter(gconstpointer, gconstpointer);
 static int match_entry_by_jid(gconstpointer, gconstpointer);
 static void row_clicked_cb(GtkTreeView *, GtkTreePath *,
-							GtkTreeViewColumn *, gpointer);
+                           GtkTreeViewColumn *, gpointer);
 void ui_roster_add(const char *, const char *);
 void ui_roster_cleanup(void);
 GtkWidget *ui_roster_setup(void);
@@ -155,7 +155,7 @@ ui_roster_add(const char *jid, const char *nick)
 	UiBuddy *newguy;	
 	gtk_tree_store_append(roster, &main_iter, NULL);
 	gtk_tree_store_set(roster, &main_iter, COL_STATUS, offline_icon,
-											COL_NAME, nick, -1);
+	                   COL_NAME, nick, -1);
 	newguy = malloc(sizeof(UiBuddy));
 	newguy->jid = jid;
 	newguy->name = nick;
@@ -194,11 +194,11 @@ ui_roster_setup(void)
 	txt_rend = gtk_cell_renderer_text_new();
 	pix_rend = gtk_cell_renderer_pixbuf_new();
 	gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(view),
-												-1, NULL, pix_rend,
-												"pixbuf", COL_STATUS, NULL);
+	                                            -1, NULL, pix_rend,
+	                                            "pixbuf", COL_STATUS, NULL);
 	gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(view),
-												-1, NULL, txt_rend,
-												"text", COL_NAME, NULL);
+	                                            -1, NULL, txt_rend,
+	                                            "text", COL_NAME, NULL);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(view), FALSE);
 	/* selection */
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
@@ -207,11 +207,11 @@ ui_roster_setup(void)
 	/* sorting */
 	sort = GTK_TREE_SORTABLE(roster);
 	gtk_tree_sortable_set_sort_func(sort, COL_STATUS, compare_rows,
-									NULL, NULL);
+	                                NULL, NULL);
 	gtk_tree_sortable_set_sort_column_id(sort, COL_STATUS, GTK_SORT_ASCENDING);
 	/* signals */
 	g_signal_connect(G_OBJECT(view), "row-activated", 
-					G_CALLBACK(row_clicked_cb), NULL);
+	                 G_CALLBACK(row_clicked_cb), NULL);
 	return view;
 } /* roster_setup */
 
@@ -224,7 +224,7 @@ ui_roster_update(const char *jid, XmppStatus s)
 	entry = g_slist_find_custom(entries, jid, match_entry_by_jid);
 	if(!entry) {
 		ui_status_print("ui_roster_update: cannot update "
-						"non-existing entry %s\n", jid);
+		                "non-existing entry %s\n", jid);
 		return;
 	}
 	sb = (UiBuddy *)entry->data;
