@@ -27,21 +27,20 @@ static void
 free_entry(gpointer elem)
 {
 	Buddy *sb = (Buddy *)elem;
-	free(sb->name);
-	free(sb->jid);
-	free(sb->group);
+	g_free(sb->name);
+	g_free(sb->jid);
+	g_free(sb->group);
 	g_slist_foreach(sb->resources, (GFunc)free_res, NULL);
 	if(sb->resources) g_slist_free(sb->resources);
-	free(sb);
+	g_free(sb);
 } /* free_entry */
 
 static void
 free_res(gpointer elem)
 {
 	Resource *foo = (Resource *)elem;
-	free(foo->name);
-	if(foo->status_msg)
-		free(foo->status_msg);
+	g_free(foo->name);
+	g_free(foo->status_msg);
 } /* free_res */
 
 static gint

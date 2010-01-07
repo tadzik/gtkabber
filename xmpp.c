@@ -236,10 +236,8 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	}
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
-		if(jid)
-			free(jid);
-		if(resname)
-			free(resname);
+		g_free(jid);
+		g_free(resname);
 		return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 	}
 	res = xmpp_roster_find_res_by_name(sb, resname);
@@ -286,7 +284,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	else
 		res->priority = 0;
 	if(res->status_msg) {
-		free(res->status_msg);
+		g_free(res->status_msg);
 		res->status_msg = NULL;
 	}
 	child = lm_message_node_get_child(m->node, "status");

@@ -66,8 +66,8 @@ compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
 		gtk_tree_model_get(m, a, COL_NAME, &n1, -1);
 		gtk_tree_model_get(m, b, COL_NAME, &n2, -1);
 		ret = strcmp(n1, n2);
-		free(n1);
-		free(n2);
+		g_free(n1);
+		g_free(n2);
 		return ret;
 	}
 } /* compare_rows */

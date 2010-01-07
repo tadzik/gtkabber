@@ -113,9 +113,8 @@ static void
 free_tab(gpointer t, gpointer u)
 {
 	Chattab *tab = (Chattab *)t;
-	if(tab->jid)
-		free(tab->jid);
-	free(tab->title);
+	g_free(tab->jid);
+	g_free(tab->title);
 } /* free_tab */
 
 static gint
