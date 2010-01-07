@@ -44,15 +44,14 @@ append_to_tab(Chattab *t, const char *s)
 {
 	GtkTextIter i;
 	time_t now;
-	char tstamp[12];
-	GString *str;
+	char tstamp[11];
+	char *str;
 	now = time(NULL);
 	gtk_text_buffer_get_end_iter(t->buffer, &i);
-	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S] ", localtime(&now));
-	str = g_string_new(tstamp);
-	g_string_append(str, s);
-	gtk_text_buffer_insert(t->buffer, &i, str->str, str->len);
-	g_string_free(str, TRUE);
+	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S]", localtime(&now));
+	str = g_strdup_printf("%s %s", tstamp, s);
+	gtk_text_buffer_insert(t->buffer, &i, str, strlen(str));
+	g_free(str);
 	scroll_tab_down(t);
 } /* append_to_tab */
 
@@ -65,7 +64,7 @@ cbox_changed_cb(GtkComboBox *e, gpointer p)
 static void
 tab_notify(Chattab *t)
 {
-	GString *markup;
+	char *markup;
 	GtkWidget *activechild;
 	set_wm_urgency(); /*this is done even if the tab is active*/
 	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
@@ -73,10 +72,9 @@ tab_notify(Chattab *t)
 	if(activechild == t->vbox)
 		/*this tab's alredy active*/
 		return;
-	markup = g_string_new(NULL);
-	g_string_printf(markup, "<b>%s</b>", t->title);
-	gtk_label_set_markup(GTK_LABEL(t->label), markup->str);
-	g_string_free(markup, TRUE);
+	markup = g_strdup_printf("<b>%s</b>", t->title);
+	gtk_label_set_markup(GTK_LABEL(t->label), markup);
+	g_free(markup);
 } /* tab_notify */
 
 static void
@@ -133,9 +131,8 @@ reset_tab_title(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 	Chattab *tab;
 	child = gtk_notebook_get_nth_page(b, n);
 	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
-	if(tab) { /* just in case */
+	if(tab) /* just in case */
 		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
-	}
 } /* reset_tab_title */
 
 static void
@@ -174,12 +171,11 @@ tab_entry_handler(GtkWidget *e, gpointer p)
 	Chattab *tab = (Chattab *)p;
 	const char *input = gtk_entry_get_text(GTK_ENTRY(e));
 	if(tab->jid) {
-		GString *str;
+		char *str;
 		xmpp_send_message(tab->jid, input);
-		str = g_string_new("--> ");
-		g_string_append_printf(str, "%s\n", input);
-		append_to_tab(tab, str->str);
-		g_string_free(str, TRUE);
+		str = g_strdup_printf("--> %s\n", input);
+		append_to_tab(tab, str);
+		g_free(str);
 	} else {
 		if(commands_exec(input)) {
 			ui_status_print("Error: unknown command\n");
@@ -278,7 +274,7 @@ ui_setup(int *argc, char **argv[])
 	/*including status tab*/
 	status_tab = malloc(sizeof(Chattab));
 	status_tab->jid = NULL;
-	status_tab->title = strdup("Status");
+	status_tab->title = g_strdup("Status");
 	ui_create_tab(status_tab);
 	/*packing*/
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), roster);
@@ -318,32 +314,31 @@ void
 ui_status_print(const char *msg, ...)
 {
 	va_list ap;
-	GString *str;
+	char *str;
 	va_start(ap, msg);
-	str = g_string_new(NULL);
-	g_string_append_vprintf(str, msg, ap);
-	append_to_tab(status_tab, str->str);
+	str = g_strdup_vprintf(msg, ap);
+	append_to_tab(status_tab, str);
 	va_end(ap);
-	g_string_free(str, TRUE);
+	g_free(str);
 } /* ui_status_print */
 
 void
 ui_tab_print_message(const char *jid, const char *msg)
 {
 	Chattab *tab;
-	GString *str;
+	char *str;
 	tab = find_tab_by_jid(jid);
 	if(!tab) {
 		Buddy *sb;
 		char *shortjid, *slash;
-		slash = index(jid, '/');
+		slash = strchr(jid, '/');
 		if(!slash) {
 			g_printerr("ui_tab_print_message: "
 			           "How do I get message from someone with no resource? "
 			           "Who the fuck is %s supposed to be? Shit!\n", jid);
 			return;
 		}
-		shortjid = strndup(jid, slash-jid);
+		shortjid = g_strndup(jid, slash-jid);
 		g_printerr("Not found, creating new, for %s\n", shortjid);
 		sb = xmpp_roster_find_by_jid(shortjid);
 		if(!sb) {
@@ -352,17 +347,16 @@ ui_tab_print_message(const char *jid, const char *msg)
 			return;
 		}
 		tab = malloc(sizeof(Chattab));
-		tab->jid = strdup(jid);
-		tab->title = strdup(sb->name);
+		tab->jid = g_strdup(jid);
+		tab->title = g_strdup(sb->name);
 		ui_create_tab(tab);
 	}
-	str = g_string_new("<-- ");
-	g_string_append_printf(str, "%s\n", msg);
-	append_to_tab(tab, str->str);
+	str = g_strdup_printf("<-- %s\n", msg);
+	append_to_tab(tab, str);
 	/* bolding tab title if it's not the status tab
 	 * (the function will check whether the tab is active or not,
 	 * we don't care about this) */
 	if(tab->jid)
 		tab_notify(tab);
-	g_string_free(str, TRUE);
+	g_free(str);
 } /* ui_tab_print_message */

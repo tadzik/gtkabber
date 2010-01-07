@@ -77,15 +77,16 @@ load_icon(const char *status)
 {
 	GdkPixbuf *new;
 	GError *err = NULL;
-	char path[20];
+	char *path;
 	/* TODO: Here there should be some iconset choosing
 	 * (once I'll make it possible :])*/
-	snprintf(path, sizeof(path), "icons/%s.png", status);
+	path = g_strdup_printf("icons/%s.png", status);
 	new = gdk_pixbuf_new_from_file(path, &err);
 	if (new == NULL) {
-		ui_status_print("Error loading icon %s: %s\n", path, err->message);
+		ui_status_print("Error loading iconset %s: %s\n", path, err->message);
 		g_error_free(err);
 	}
+	g_free(path);
 	return new;
 } /* load_icon */
 
@@ -136,16 +137,12 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 	if(entry) {
 		Chattab *tab;
 		const char *resname;
-		GString *fulljid;
 		tab = malloc(sizeof(Chattab));
 		sb = (UiBuddy *)entry->data;
 		resname = xmpp_roster_get_best_resname(sb->jid);
-		fulljid = g_string_new(sb->jid);
-		g_string_append_printf(fulljid, "/%s", resname);
-		tab->jid = strdup(fulljid->str);
-		tab->title = strdup(sb->name);
+		tab->jid = g_strdup_printf("%s/%s", sb->jid, resname);
+		tab->title = g_strdup(sb->name);
 		ui_create_tab(tab);
-		g_string_free(fulljid, TRUE);
 	}
 } /* row_clicked_cb */
 

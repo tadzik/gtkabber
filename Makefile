@@ -5,7 +5,7 @@ PREFIX?=/usr/local
 INSTALLDIF?=$(DESTDIR)$(PREFIX)
 
 CC=gcc
-CFLAGS=-ansi -Wall -pedantic $(WEXTRA) -g -D_GNU_SOURCE $(INCS)
+CFLAGS=-ansi -Wall -Werror -pedantic $(WEXTRA) -g $(INCS)
 LD=gcc
 LDFLAGS=$(LIBS)
 

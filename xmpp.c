@@ -226,13 +226,13 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	Resource *res;
 	LmMessageNode *child;
 	buf = lm_message_node_get_attribute(m->node, "from");
-	sep = index(buf, '/');
+	sep = strchr(buf, '/');
 	if(sep) {
-		jid = strndup(buf, sep-buf);
-		resname = strdup(sep+1);
+		jid = g_strndup(buf, sep-buf);
+		resname = g_strdup(sep+1);
 	} else {
-		jid = strdup(buf);
-		resname = strdup("default");
+		jid = g_strdup(buf);
+		resname = g_strdup("default");
 	}
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
@@ -293,7 +293,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	if (child) {
 		buf = lm_message_node_get_value(child);
 		if(buf) {
-			res->status_msg = strdup(buf);
+			res->status_msg = g_strdup(buf);
 		}
 	}
 	ui_status_print("%s/%s is now %s (%s)\n", sb->name, resname,
@@ -371,4 +371,4 @@ xmpp_status_readable(XmppStatus st)
 	else if(st == STATUS_DND) return "do not disturb";
 	else if(st == STATUS_OFFLINE) return "offline";
 	else return "...what the fuck?";
-}
+} /* xmpp_status_readable */

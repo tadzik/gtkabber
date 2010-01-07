@@ -49,14 +49,13 @@ commands_exec(const char *command)
 void
 config_parse_rcfile(void) 
 {
-	GString *path;
+	char *path;
 	gchar *contents;
 	gchar **lines;
 	GError *err = NULL;
-	path = g_string_new(NULL);
-	g_string_append_printf(path, "%s/.config/gtkabberrc", g_getenv("HOME"));
+	path = g_strdup_printf("%s/.config/gtkabberrc", g_getenv("HOME"));
 	/*loading file contents: gods bless glib*/
-	if(!g_file_get_contents(path->str, &contents, NULL, &err)) {
+	if(!g_file_get_contents(path, &contents, NULL, &err)) {
 		ui_status_print("Error opening rc file: %s\n", err->message);
 		g_error_free(err);
 	} else {
@@ -77,7 +76,7 @@ config_parse_rcfile(void)
 		}
 		g_strfreev(lines);
 	}
-	g_string_free(path, TRUE);
+	g_free(path);
 } /* config_parse_rcfile */
 
 static int 
@@ -88,7 +87,7 @@ set(const char *params)
 	 * 2: not enough parameters 
 	 */
 	char *arg;
-	arg = index(params, ' ');
+	arg = strchr(params, ' ');
 	if(!arg++)
 		return 2;
 	/*

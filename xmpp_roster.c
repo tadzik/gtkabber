@@ -134,12 +134,12 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 		if(xmpp_roster_find_by_jid(attr))
 			continue;
 		entry = (Buddy *)malloc(sizeof(Buddy));
-		entry->jid = strdup(attr ? attr : "");
+		entry->jid = g_strdup(attr ? attr : "");
 		attr = lm_message_node_get_attribute(item, "name");
 		if(attr) {
-			entry->name = strdup(attr);
+			entry->name = g_strdup(attr);
 		} else {
-			entry->name = strndup(entry->jid,
+			entry->name = g_strndup(entry->jid,
 			                      strchr(entry->jid, '@') - entry->jid);
 		}
 		attr = lm_message_node_get_attribute(item, "subscription");
@@ -154,7 +154,7 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 		/* "remove" has alredy been covered */
 		node = lm_message_node_get_child(item, "group");
 		if(node)
-			entry->group = strdup(lm_message_node_get_value(node));
+			entry->group = g_strdup(lm_message_node_get_value(node));
 		else
 			entry->group = NULL;
 		/* creating resources list */
