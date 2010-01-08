@@ -133,7 +133,7 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 		/* Checking if we don't have this guy on our roster */
 		if(xmpp_roster_find_by_jid(attr))
 			continue;
-		entry = (Buddy *)malloc(sizeof(Buddy));
+		entry = (Buddy *)g_malloc(sizeof(Buddy));
 		entry->jid = g_strdup(attr ? attr : "");
 		attr = lm_message_node_get_attribute(item, "name");
 		if(attr) {

@@ -311,7 +311,7 @@ ui_setup(int *argc, char **argv[])
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);
 	/* setting up status tab */
-	status_tab = malloc(sizeof(Chattab));
+	status_tab = g_malloc(sizeof(Chattab));
 	status_tab->jid = NULL;
 	status_tab->title = g_strdup("Status");
 	ui_create_tab(status_tab);
@@ -387,7 +387,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 			g_free(shortjid);
 			return;
 		}
-		tab = malloc(sizeof(Chattab));
+		tab = g_malloc(sizeof(Chattab));
 		tab->jid = g_strdup(jid);
 		tab->title = g_strdup(sb->name);
 		ui_create_tab(tab);

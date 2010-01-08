@@ -1,6 +1,6 @@
 #include <loudmouth/loudmouth.h>
-#include <string.h> /*xmpp_iq_handler needs this, so far only it*/
-#include <stdlib.h> /*malloc*/
+#include <stdlib.h>
+#include <string.h>
 #include "commands.h"
 #include "ui.h"
 #include "ui_roster.h"
@@ -243,7 +243,7 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	res = xmpp_roster_find_res_by_name(sb, resname);
 	if(!res) {
 		/* we have to create a new resource */	
-		res = malloc(sizeof(Resource));
+		res = g_malloc(sizeof(Resource));
 		res->name = (char *)resname;
 		res->status_msg = NULL;
 		xmpp_roster_add_resource(sb, res);
