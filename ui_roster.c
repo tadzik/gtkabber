@@ -203,7 +203,7 @@ ui_roster_cleanup(void)
 	if(xa_icon)
 		g_object_unref(G_OBJECT(xa_icon));
 	/* There's no memory allocated in the list besides the elements itself */
-	g_slist_foreach(entries, g_free, NULL);
+	g_slist_foreach(entries, (GFunc)g_free, NULL);
 	g_slist_free(entries);
 }
 
