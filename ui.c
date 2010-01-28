@@ -29,7 +29,7 @@ static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
 static void tab_entry_handler(GtkWidget *, gpointer);
-void ui_create_tab(Chattab *);
+Chattab *ui_create_tab(const gchar *, const gchar *);
 XmppStatus ui_get_status(void);
 const gchar *ui_get_status_msg(void);
 void ui_setup(int *, char ***);
@@ -237,17 +237,21 @@ tab_entry_handler(GtkWidget *e, gpointer p)
 	gtk_entry_set_text(GTK_ENTRY(e), "");
 } /* tab_entry_handler */
 
-void
-ui_create_tab(Chattab *tab)
+Chattab *
+ui_create_tab(const gchar *jid, const gchar *title)
 {
-	/* Okay, here's a big one. jid and title are to be put
-	 * into allocated tab by the caller, which may be not too good. TODO?
-	 * It's called either when user clicks on the buddy in the roster
-	 * (ui_roster.c), or when the new message arrives (xmpp.c,
-	 * message_handler), I think there probably should be some function here,
-	 * in ui.c, so we can make ui_create_tab() internal, and this handlers
-	 * won't have to allocate space for Chattab. */
+	/* Okay, here's a big one. It's called either when user clicks on the buddy
+	 * in the roster (ui_roster.c), or when the new message arrives (xmpp.c,
+	 * xmpp_message_handler), if supplied jid is NULL, we're creating
+	 * a status_tab */
 	GtkWidget *tview, *entry;
+	Chattab *tab;
+	tab = g_malloc(sizeof(Chattab));
+	if(jid == NULL)
+		status_tab = tab;
+	else
+		tab->jid = g_strdup(jid);
+	tab->title = g_strdup(title);
 	/* creating GtkLabel for the tab title */
 	tab->label = gtk_label_new(tab->title);
 	/* creating GtkTextView for status messages */
@@ -286,6 +290,7 @@ ui_create_tab(Chattab *tab)
 	                              gtk_notebook_page_num(GTK_NOTEBOOK(nbook),
 	                                                    tab->vbox));
 	gtk_widget_grab_focus(entry);
+	return tab;
 } /* ui_create_tab */
 
 XmppStatus
@@ -340,10 +345,7 @@ ui_setup(int *argc, char **argv[])
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);
 	/* setting up status tab */
-	status_tab = g_malloc(sizeof(Chattab));
-	status_tab->jid = NULL;
-	status_tab->title = g_strdup("Status");
-	ui_create_tab(status_tab);
+	ui_create_tab(NULL, "Status");
 	/* packing */
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), rview);
 	gtk_container_add(GTK_CONTAINER(window), hpaned);
@@ -418,10 +420,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 			g_free(shortjid);
 			return;
 		}
-		tab = g_malloc(sizeof(Chattab));
-		tab->jid = g_strdup(jid);
-		tab->title = g_strdup(sb->name);
-		ui_create_tab(tab);
+		tab = ui_create_tab(jid, sb->name);
 	}
 	/* actual message printing - two lines of this whole function! */
 	str = g_strdup_printf("<-- %s\n", msg);

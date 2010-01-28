@@ -154,17 +154,16 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 	GtkTreeIter iter;
 	GSList *entry;
 	UiBuddy *sb;
+	gchar *jid;
 	gtk_tree_model_get_iter(gtk_tree_view_get_model(t), &iter, p);
 	entry = g_slist_find_custom(entries, (void *)&iter, match_entry_by_iter);
 	if(entry) {
-		Chattab *tab;
 		const gchar *resname;
-		tab = g_malloc(sizeof(Chattab));
 		sb = (UiBuddy *)entry->data;
 		resname = xmpp_roster_get_best_resname(sb->jid);
-		tab->jid = g_strdup_printf("%s/%s", sb->jid, resname);
-		tab->title = g_strdup(sb->name);
-		ui_create_tab(tab);
+		jid = g_strdup_printf("%s/%s", sb->jid, resname);
+		ui_create_tab(jid, sb->name);
+		g_free(jid);
 	}
 } /* row_clicked_cb */
 
