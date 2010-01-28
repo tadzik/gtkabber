@@ -23,6 +23,7 @@ static Chattab *find_tab_by_jid(const gchar *);
 static void free_all_tabs(void);
 static void free_tab(gpointer, gpointer);
 static gint match_tab_by_jid(gconstpointer, gconstpointer);
+static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
@@ -39,9 +40,9 @@ void ui_tab_print_message(const gchar *, const gchar *);
 /*************/
 
 /* global variables */
-Chattab *status_tab;
-GtkWidget *nbook, *status_cbox, *status_entry, *window;
-GSList *tabs;
+static Chattab *status_tab;
+static GtkWidget *nbook, *rview, *status_cbox, *status_entry, *window;
+static GSList *tabs;
 /********************/
 
 static void
@@ -141,6 +142,30 @@ match_tab_by_jid(gconstpointer elem, gconstpointer jid)
 	 * as g_strcmp0 handles NULL string well */
 	return g_strcmp0(tab->jid, jid);
 } /* match_tab_by_jid */
+
+static gboolean
+keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
+{
+	/* We react only on Ctrl+something keys */
+	if(e->state & (guint)4) { /* ctrl mask */
+		switch(e->keyval) {
+		case 114: /* r */
+			gtk_widget_grab_focus(rview);
+			break;
+		case 115: /* s */
+			if(e->state & (guint)8) /* with alt */
+				gtk_widget_grab_focus(status_entry);
+			else
+				gtk_widget_grab_focus(status_cbox);
+			break;
+		case 116: /* t */
+			gtk_widget_grab_focus(nbook);
+			break;
+		}
+	}
+
+	return 0;
+} /* keypress_cb */
 
 static void
 reset_tab_title(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
@@ -257,6 +282,10 @@ ui_create_tab(Chattab *tab)
 	/* aaand, launch! */
 	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, tab->label);
 	tabs = g_slist_prepend(tabs, tab);
+	gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook),
+	                              gtk_notebook_page_num(GTK_NOTEBOOK(nbook),
+	                                                    tab->vbox));
+	gtk_widget_grab_focus(entry);
 } /* ui_create_tab */
 
 XmppStatus
@@ -290,7 +319,7 @@ void
 ui_setup(int *argc, char **argv[])
 {
 	/* The first thing that occurs in the program, sets up the interface */
-	GtkWidget *hpaned, *leftbox, *rwin, *roster;
+	GtkWidget *hpaned, *leftbox, *rwin;
 	gtk_init(argc, argv);
 	/* creating widgets */
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -299,7 +328,7 @@ ui_setup(int *argc, char **argv[])
 	rwin = gtk_scrolled_window_new(NULL, NULL);
 	status_cbox = gtk_combo_box_new_text();
 	nbook = gtk_notebook_new();
-	roster = ui_roster_setup();
+	rview = ui_roster_setup();
 	/* setting up the more exciting ones */
 	setup_cbox(status_cbox);
 	status_entry = gtk_entry_new();
@@ -316,7 +345,7 @@ ui_setup(int *argc, char **argv[])
 	status_tab->title = g_strdup("Status");
 	ui_create_tab(status_tab);
 	/* packing */
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), roster);
+	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), rview);
 	gtk_container_add(GTK_CONTAINER(window), hpaned);
 	gtk_paned_add1(GTK_PANED(hpaned), leftbox);
 	gtk_container_add(GTK_CONTAINER(leftbox), rwin);
@@ -332,6 +361,8 @@ ui_setup(int *argc, char **argv[])
 	                 G_CALLBACK(destroy), NULL);
 	g_signal_connect(G_OBJECT(status_entry), "activate",
 	                 G_CALLBACK(xmpp_set_status), NULL);
+	g_signal_connect(G_OBJECT(window), "key-press-event",
+	                 G_CALLBACK(keypress_cb), NULL);
 	/*go go go!*/
 	gtk_widget_show_all(window);
 } /* ui_setup */
