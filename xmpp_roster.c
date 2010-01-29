@@ -101,10 +101,11 @@ xmpp_roster_get_best_resname(const char *jid)
 	Resource *best = NULL;
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
-		g_printerr("xmpp_roster_get_best_resname: Not found? "
-		           "Are you shitting me? What the fuck man?");
+		g_printerr("xmpp_roster_get_best_resname: buddy %s not found",
+		           jid);
 		return NULL;
 	}
+	if(sb->resources == NULL) return NULL;
 	for(elem = sb->resources; elem; elem = elem->next) {
 		Resource *ed = (Resource *)elem->data;
 		if(!best || best->priority < ed->priority)

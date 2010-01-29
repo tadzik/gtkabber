@@ -161,7 +161,10 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 		const gchar *resname;
 		sb = (UiBuddy *)entry->data;
 		resname = xmpp_roster_get_best_resname(sb->jid);
-		jid = g_strdup_printf("%s/%s", sb->jid, resname);
+		if(resname == NULL)
+			jid = g_strdup(sb->jid);
+		else
+			jid = g_strdup_printf("%s/%s", sb->jid, resname);
 		ui_create_tab(jid, sb->name);
 		g_free(jid);
 	}

@@ -52,9 +52,8 @@ typedef struct {
 } Resource;
 
 typedef struct {
-	/* jid and title are allocated in ui_add_tab (they _should_ be. TODO!)
-	 * and freed in free_all_tabs (ui.c) when the app exits. We're also keeping
-	 * pointers to a few widgets here:
+	/* jid and title are allocated in ui_add_tab and freed in free_all_tabs (ui.c)
+	 * when the app exits. We're also keeping pointers to a few widgets here:
 	 * buffer: used for printing messages to tabs, ui_tab_print_message()
 	 *         and internal tab's GtkEntry activate signal handler
 	 * label: used by reset_tab_title() (ui.c), and tab_notify() (ibidem)

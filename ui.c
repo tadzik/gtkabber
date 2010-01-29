@@ -17,11 +17,13 @@
 /* functions */
 static void append_to_tab(Chattab *, const gchar *);
 static void cbox_changed_cb(GtkComboBox *, gpointer);
-static void tab_notify(Chattab *);
+static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
+static Chattab *find_tab_by_child(GtkWidget *);
 static Chattab *find_tab_by_jid(const gchar *);
 static void free_all_tabs(void);
 static void free_tab(gpointer, gpointer);
+static gint match_tab_by_child(gconstpointer, gconstpointer);
 static gint match_tab_by_jid(gconstpointer, gconstpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
@@ -29,6 +31,7 @@ static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
 static void tab_entry_handler(GtkWidget *, gpointer);
+static void tab_notify(Chattab *);
 Chattab *ui_create_tab(const gchar *, const gchar *);
 XmppStatus ui_get_status(void);
 const gchar *ui_get_status_msg(void);
@@ -68,34 +71,32 @@ append_to_tab(Chattab *t, const gchar *s)
 static void
 cbox_changed_cb(GtkComboBox *e, gpointer p)
 {
-	/* internal handler calling external function. Needed? TODO: Check */
 	xmpp_set_status(ui_get_status());
 } /* cbox_changed_cb */
 
 static void
-tab_notify(Chattab *t)
+close_active_tab(void)
 {
-	/* This makes all necessary notifications on the selected tab,
-	 * setting wm urgency (TODO: should be defined by configuration)
-	 * as well as bolding the tab title */
-	gchar *markup;
-	GtkWidget *activechild;
-	set_wm_urgency(); /* this is done even if the tab is active */
-	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
-	               gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
-	if(activechild == t->vbox)
-		/* this tab's alredy active */
+	GtkWidget *child;
+	Chattab *tab;
+	int pageno = gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook));
+	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook), pageno);
+	tab = find_tab_by_child(child);
+	if(!tab) {
+		g_printerr("close_active_tab: tab not found!\n");
 		return;
-	markup = g_strdup_printf("<b>%s</b>", t->title);
-	gtk_label_set_markup(GTK_LABEL(t->label), markup);
-	g_free(markup);
-} /* tab_notify */
+	}
+	if(tab->jid == NULL) /* removing status tab is a bad idea */
+		return;
+	g_free(tab->jid);
+	g_free(tab->title);
+	gtk_notebook_remove_page(GTK_NOTEBOOK(nbook), pageno);
+	tabs = g_slist_remove(tabs, (gconstpointer)tab);
+} /* close_active_tab */
 
 static void
 destroy(GtkWidget *widget, gpointer data)
 {
-	/* This occurs when "destroy" event comes to our window
-	 * cleaning everything up and stuff. The whole app ends here */
 	xmpp_cleanup();
 	ui_roster_cleanup();
 	gtk_main_quit();
@@ -103,21 +104,24 @@ destroy(GtkWidget *widget, gpointer data)
 } /* destroy */
 
 Chattab *
+find_tab_by_child(GtkWidget *child)
+{
+	GSList *elem;
+	elem = g_slist_find_custom(tabs, child, match_tab_by_child);
+	return (elem) ? (elem->data) : NULL;
+} /* find_tab_by_child */
+
+Chattab *
 find_tab_by_jid(const gchar *jid)
 {
-	/* Self-explanatory I guess. Internal one, used by ui_tab_print_message */
 	GSList *elem;
 	elem = g_slist_find_custom(tabs, jid, match_tab_by_jid);
-	if(elem)
-		return elem->data;
-	else
-		return NULL;
+	return (elem) ? (elem->data) : NULL;
 } /* find_tab_by_jid */
 
 static void
 free_all_tabs(void)
 {
-	/* No explanations needed */
 	if(tabs) {
 		g_slist_foreach(tabs, (GFunc)free_tab, NULL);
 		g_slist_free(tabs);
@@ -127,11 +131,20 @@ free_all_tabs(void)
 static void
 free_tab(gpointer t, gpointer u)
 {
-	/* Again, nothing to explain */
 	Chattab *tab = (Chattab *)t;
 	g_free(tab->jid);
 	g_free(tab->title);
 } /* free_tab */
+
+static gint
+match_tab_by_child(gconstpointer elem, gconstpointer child)
+{
+	/* called by find_tab_by_child */
+	Chattab *tab = (Chattab *)elem;
+	if(tab->vbox == (GtkWidget *)child)
+		return 0;
+	return 1;
+} /* match_tab_by_child */
 
 static gint
 match_tab_by_jid(gconstpointer elem, gconstpointer jid)
@@ -149,6 +162,9 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 	/* We react only on Ctrl+something keys */
 	if(e->state & (guint)4) { /* ctrl mask */
 		switch(e->keyval) {
+		case 113: /* q */
+			close_active_tab();
+			break;
 		case 114: /* r */
 			gtk_widget_grab_focus(rview);
 			break;
@@ -236,6 +252,25 @@ tab_entry_handler(GtkWidget *e, gpointer p)
 	}
 	gtk_entry_set_text(GTK_ENTRY(e), "");
 } /* tab_entry_handler */
+
+static void
+tab_notify(Chattab *t)
+{
+	/* This makes all necessary notifications on the selected tab,
+	 * setting wm urgency (TODO: should be defined by configuration)
+	 * as well as bolding the tab title */
+	gchar *markup;
+	GtkWidget *activechild;
+	set_wm_urgency(); /* this is done even if the tab is active */
+	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
+	               gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
+	if(activechild == t->vbox)
+		/* this tab's alredy active */
+		return;
+	markup = g_strdup_printf("<b>%s</b>", t->title);
+	gtk_label_set_markup(GTK_LABEL(t->label), markup);
+	g_free(markup);
+} /* tab_notify */
 
 Chattab *
 ui_create_tab(const gchar *jid, const gchar *title)
