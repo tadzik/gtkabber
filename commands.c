@@ -30,8 +30,6 @@ gchar *conf_username = NULL;
 void
 config_cleanup(void)
 {
-	/* This one is called when the program quits, and cleans all the memory
-	 * allocated here, which is configuration variables */
 	g_free(conf_passwd);
 	g_free(conf_priority);
 	g_free(conf_res);
@@ -42,8 +40,6 @@ config_cleanup(void)
 int
 commands_exec(const char *command)
 {
-	/* Here we decide what to do with the given command and send it
-	 * to appropirate internal function */
 	if(g_str_has_prefix(command, "set ")) {
 		/*the only case so far: setting variables*/
 		if(set(&command[4])) return 1;

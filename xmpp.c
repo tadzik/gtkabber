@@ -205,14 +205,14 @@ xmpp_mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
                   gpointer udata)
 {
 	const char *from, *body;
-	LmMessageNode *bodynode;
+	LmMessageNode *node;
 	from = lm_message_node_get_attribute(m->node, "from");
-	bodynode = lm_message_node_get_child(m->node, "body");
-	if(bodynode) {
-		body = lm_message_node_get_value(bodynode);
-		if(body)
-			ui_tab_print_message(from, body);
-	}
+	node = lm_message_node_get_child(m->node, "body");
+	if(node && (body = lm_message_node_get_value(node)))
+		ui_tab_print_message(from, body);
+	/* we're actually ignoring <subject> and <thread> elements,
+	 * as I've never actually seen them being used. If you do, and you care,
+	 * feel obliged to mail me and yell at me */
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 } /* xmpp_mesg_handler */
 
@@ -248,58 +248,48 @@ xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		res->status_msg = NULL;
 		xmpp_roster_add_resource(sb, res);
 	}
-	child = lm_message_node_get_child(m->node, "show");
-	if(!child) {
-		/* no "show" tag, so no specific status is to be set
-	 	* checking whether it's online or offline */
-		buf = lm_message_node_get_attribute(m->node, "type");
-		if(!buf) {
-			res->status = STATUS_ONLINE;	
+	/* checking presence type (if available) */
+	if((buf = lm_message_node_get_attribute(m->node, "type"))) {
+		if(g_strcmp0(buf, "unavailable") == 0) {
+			res->status = STATUS_OFFLINE;
 		} else {
-			if(g_strcmp0(buf, "unavailable") == 0 || g_strcmp0(buf, "error") == 0) {
-				res->status = STATUS_OFFLINE;
-			} else {
-				ui_status_print("Presence type '%s', oh lawd, what to do?\n",
-				                buf);
-				res->status = STATUS_OFFLINE;
-			}
+			/* other presence types are not yet implemented */
+			return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 		}
 	} else {
-		/* it's some specific status
-		 * (or at least I hope so :})*/
+		res->status = STATUS_ONLINE;	
+	}
+	/* checking for some specific status */
+	if((child = lm_message_node_get_child(m->node, "show"))) {
 		buf = lm_message_node_get_value(child);
 		if(!g_strcmp0(buf, "away")) res->status = STATUS_AWAY;
 		else if(!g_strcmp0(buf, "chat")) res->status = STATUS_FFC;
 		else if(!g_strcmp0(buf, "xa")) res->status = STATUS_XA;
 		else if(!g_strcmp0(buf, "dnd")) res->status = STATUS_DND;
-		else {
-			ui_status_print("WHOOPS: What is show '%s' supposed to mean?\n",
-		                   	buf);
-			res->status = STATUS_OFFLINE;
-		}
+		/* any other <show> is forbidden in xmpp,
+		 * so we're not gonna care about it anyway */
 	}
-	child = lm_message_node_get_child(m->node, "priority");
-	if(child) {
-		/* Suprisingly, this is not always true.
-		 * Thanks to webczat, whose presences are so @!&^#! */
-		if(lm_message_node_get_value(child))
-			res->priority = atoi(lm_message_node_get_value(child));
-	} else res->priority = 0;
+	/* checking if resource has some previous status message.
+	 * If it does, purge it */
 	if(res->status_msg) {
 		g_free(res->status_msg);
 		res->status_msg = NULL;
 	}
+	/* checking for status message */
 	child = lm_message_node_get_child(m->node, "status");
-	if (child) {
-		buf = lm_message_node_get_value(child);
-		if(buf) {
-			res->status_msg = g_strdup(buf);
-		}
-	}
+	if (child && (buf = lm_message_node_get_value(child)))
+		res->status_msg = g_strdup(buf);
+	/* checking priority (if provided) */
+	child = lm_message_node_get_child(m->node, "priority");
+	if(child && (buf = lm_message_node_get_value(child)))
+		res->priority = atoi(buf);
+	else
+		res->priority = 0;
+	/* printing a message to status window and updating roster entry in ui */
 	ui_status_print("%s/%s is now %s (%s)\n", sb->name, resname,
 	                xmpp_status_readable(res->status),
 	                (res->status_msg) ? res->status_msg : "");
-	ui_roster_update(sb->jid, res->status);
+	ui_roster_update(sb->jid);
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 } /* xmpp_pres_handler */
 

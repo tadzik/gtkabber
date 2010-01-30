@@ -18,7 +18,8 @@ enum {
 static GtkTreeIter main_iter;
 static GtkTreeSelection *selection;
 static GtkTreeStore *roster;
-static GSList *entries;
+static GtkWidget *view;
+static GSList *entries, *groups;
 
 static GdkPixbuf *offline_icon;
 static GdkPixbuf *online_icon;
@@ -38,10 +39,10 @@ static gint match_entry_by_iter(gconstpointer, gconstpointer);
 static gint match_entry_by_jid(gconstpointer, gconstpointer);
 static void row_clicked_cb(GtkTreeView *, GtkTreePath *,
                            GtkTreeViewColumn *, gpointer);
-void ui_roster_add(const gchar *, const gchar *);
+void ui_roster_add(const gchar *, const gchar *, const gchar *);
 void ui_roster_cleanup(void);
 GtkWidget *ui_roster_setup(void);
-void ui_roster_update(const gchar *, XmppStatus);
+void ui_roster_update(const gchar *);
 /************/
 
 static gint
@@ -123,7 +124,6 @@ match_entry_by_iter(gconstpointer e, gconstpointer i)
 {
 	/* Called by row_clicked_cb callback, to determine
 	 * which row have we actually clicked */
-	/*TODO: Check if comparing GtkTreeIter.stamp would do the job*/
 	gint ret;
 	GtkTreePath *p1, *p2;
 	GtkTreeModel *m = GTK_TREE_MODEL(roster);
@@ -171,18 +171,45 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 } /* row_clicked_cb */
 
 void
-ui_roster_add(const gchar *jid, const gchar *nick)
+ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 {
 	/* Adding new buddy to our roster widget.
 	 * Memory allocated here is freed by ui_roster_clenaup,
 	 * called by destroy() signal handler in ui.c */
-	UiBuddy *newguy;	
-	gtk_tree_store_append(roster, &main_iter, NULL);
+	UiBuddy *newguy;
+	UiGroup *group;
+	GSList *elem;
+	GtkTreeIter *iter = NULL;
+	/* checking if our buddy belongs to some group */
+	if(g) {
+		/* looking for his group */
+		for(elem = groups; elem; elem = elem->next) {
+			group = (UiGroup *)elem->data;
+			if(g_strcmp0(group->name, g) == 0) break;
+		}
+		/* did we even find this group? */
+		if(elem) {
+			group = (UiGroup *)elem->data;
+			/* well, it's a bit ugly. TODO */
+			gtk_tree_view_expand_all(GTK_TREE_VIEW(view));
+		} else {
+			/* we'll have to create one */
+			g_printerr("Creating a new group\n");
+			group = g_malloc(sizeof(UiGroup));
+			group->name = g_strdup(g);
+			gtk_tree_store_append(roster, &main_iter, NULL);
+			gtk_tree_store_set(roster, &main_iter, COL_NAME, g, -1);
+			group->iter = main_iter;
+			groups = g_slist_prepend(groups, group);
+		}
+		iter = &group->iter;
+	}
+	gtk_tree_store_append(roster, &main_iter, iter);
 	gtk_tree_store_set(roster, &main_iter, COL_STATUS, offline_icon,
-	                   COL_NAME, nick, -1);
+	                   COL_NAME, n, -1);
 	newguy = g_malloc(sizeof(UiBuddy));
-	newguy->jid = jid;
-	newguy->name = nick;
+	newguy->jid = j;
+	newguy->name = n;
 	newguy->iter = main_iter;
 	entries = g_slist_prepend(entries, newguy);
 } /* ui_roster_add */
@@ -192,6 +219,7 @@ ui_roster_cleanup(void)
 {
 	/* This function, called by destroy() in ui.c frees the allocated icons
 	 * and the list containing rows data */
+	GSList *elem;
 	if(offline_icon)
 		g_object_unref(G_OBJECT(offline_icon));
 	if(online_icon)
@@ -207,6 +235,12 @@ ui_roster_cleanup(void)
 	/* There's no memory allocated in the list besides the elements itself */
 	g_slist_foreach(entries, (GFunc)g_free, NULL);
 	g_slist_free(entries);
+	/* pardon, I'm sick of this g_slist_foreach */
+	for(elem = groups; elem; elem = elem->next) {
+		UiGroup *g = elem->data;
+		g_free(g->name);
+	}
+	g_slist_free(groups);
 }
 
 GtkWidget *
@@ -214,7 +248,6 @@ ui_roster_setup(void)
 {
 	/* This function, called in ui_setup() prepares
 	 * our roster widget for later use */
-	GtkWidget *view;
 	GtkCellRenderer *txt_rend, *pix_rend;
 	GtkTreeSortable *sort;
 	/* tree store */
@@ -251,13 +284,14 @@ ui_roster_setup(void)
 } /* roster_setup */
 
 void
-ui_roster_update(const char *jid, XmppStatus s)
+ui_roster_update(const char *jid)
 {
 	/* This function updates the appropriate entry, changing its status icon.
 	 * The entry is determined by the given jid, which is compared to the one
 	 * kept in entries GSList */
 	GSList *entry;
 	UiBuddy *sb;
+	Resource *res;
 	GdkPixbuf *icon;
 	/* looking up entry by jid */
 	entry = g_slist_find_custom(entries, jid, match_entry_by_jid);
@@ -267,18 +301,21 @@ ui_roster_update(const char *jid, XmppStatus s)
 		           "non-existing entry %s\n", jid);
 		return;
 	}
-	/* changing the icon */
 	sb = (UiBuddy *)entry->data;
-	if(s == STATUS_ONLINE) icon = online_icon;
-	else if(s == STATUS_AWAY) icon = away_icon;
-	else if(s == STATUS_FFC) icon = ffc_icon;
-	else if(s == STATUS_XA) icon = xa_icon;
-	else if(s == STATUS_DND) icon = dnd_icon;
-	else if(s == STATUS_OFFLINE) icon = offline_icon;
-	else {
-		/* should never happen */
-		g_printerr("ui_roster_update: requested invalid status %d\n", s);
+	/* looking for the best resource */
+	res = xmpp_roster_find_res_by_name(xmpp_roster_find_by_jid(jid),
+	                                   xmpp_roster_get_best_resname(jid));
+	if(!res) {
+		g_printerr("ui_roster_update: found no resource to update %s, "
+		           "assuming contact is unavailable\n", jid);
 		return;
 	}
+	/* changing the icon */
+	if(res->status == STATUS_ONLINE) icon = online_icon;
+	else if(res->status == STATUS_AWAY) icon = away_icon;
+	else if(res->status == STATUS_FFC) icon = ffc_icon;
+	else if(res->status == STATUS_XA) icon = xa_icon;
+	else if(res->status == STATUS_DND) icon = dnd_icon;
+	else if(res->status == STATUS_OFFLINE) icon = offline_icon;
 	gtk_tree_store_set(roster, &(sb->iter), COL_STATUS, icon, -1);
 } /* ui_roster_update */

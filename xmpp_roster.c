@@ -161,7 +161,7 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 		/* creating resources list */
 		entry->resources = NULL;
 		roster = g_slist_prepend(roster, entry);
-		ui_roster_add(entry->jid, entry->name);
+		ui_roster_add(entry->jid, entry->name, entry->group);
 	}
 } /* xmpp_roster_parse_query */
 

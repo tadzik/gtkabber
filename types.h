@@ -44,6 +44,12 @@ typedef struct {
 } UiBuddy;
 
 typedef struct {
+	/* group is allocated in ui_roster.c, and freed there somewhere */
+	GtkTreeIter iter;
+	gchar *name;
+} UiGroup;
+
+typedef struct {
 	/* Everything is freed together with owning Buddy in xmpp_roster_cleanup()*/
 	gchar *name;
 	XmppStatus status;

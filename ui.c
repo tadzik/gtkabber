@@ -186,7 +186,6 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 static void
 reset_tab_title(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 {	
-	/* Anything to explain? I don't think so */
 	GtkWidget *child;
 	Chattab *tab;
 	child = gtk_notebook_get_nth_page(b, n);
@@ -198,7 +197,6 @@ reset_tab_title(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 static void
 scroll_tab_down(Chattab *tab)
 {
-	/* No explanations needed */
 	GtkAdjustment *adj;
 	adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(tab->scrolled));
 	gtk_adjustment_set_value(adj, adj->upper);
@@ -224,7 +222,7 @@ setup_cbox(GtkWidget *cbox)
 static void
 set_wm_urgency()
 {
-	/* Nothing to explain */
+	if(gtk_window_is_active(GTK_WINDOW(window))) return;
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
@@ -331,7 +329,6 @@ ui_create_tab(const gchar *jid, const gchar *title)
 XmppStatus
 ui_get_status(void)
 {
-	/* A piece of code speaks a thousand words of a comment */
 	switch(gtk_combo_box_get_active(GTK_COMBO_BOX(status_cbox))) {
 		case 1:
 			return STATUS_FFC;
@@ -350,8 +347,6 @@ ui_get_status(void)
 
 const char
 *ui_get_status_msg() {
-	/* Just like this, so callers from different files
-	 * don't mess with our local variables */
 	return gtk_entry_get_text(GTK_ENTRY(status_entry));
 } /* ui_get_status_msg */
 
@@ -362,13 +357,13 @@ ui_setup(int *argc, char **argv[])
 	GtkWidget *hpaned, *leftbox, *rwin;
 	gtk_init(argc, argv);
 	/* creating widgets */
-	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	hpaned = gtk_hpaned_new();
 	leftbox = gtk_vbox_new(FALSE, 0);
-	rwin = gtk_scrolled_window_new(NULL, NULL);
-	status_cbox = gtk_combo_box_new_text();
 	nbook = gtk_notebook_new();
 	rview = ui_roster_setup();
+	rwin = gtk_scrolled_window_new(NULL, NULL);
+	status_cbox = gtk_combo_box_new_text();
+	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	/* setting up the more exciting ones */
 	setup_cbox(status_cbox);
 	status_entry = gtk_entry_new();
@@ -379,6 +374,7 @@ ui_setup(int *argc, char **argv[])
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);
+	gtk_window_set_title(GTK_WINDOW(window), "gtkabber");
 	/* setting up status tab */
 	ui_create_tab(NULL, "Status");
 	/* packing */
@@ -407,14 +403,12 @@ ui_setup(int *argc, char **argv[])
 void
 ui_set_status(XmppStatus s)
 {
-	/* Another proxy, so remote functions don't touch our local vars */
 	gtk_combo_box_set_active(GTK_COMBO_BOX(status_cbox), s);
 } /* ui_set_status */
 
 void
 ui_set_status_msg(const char *m)
 {
-	/* Another proxy, called by commands.c on 'set status_msg' command */
 	gtk_entry_set_text(GTK_ENTRY(status_entry), m);
 	xmpp_set_status(ui_get_status());
 } /* ui_set_status_msg */
