@@ -16,10 +16,12 @@ enum {
 
 /* vars */
 static GtkTreeIter main_iter;
+static GtkTreeModel *filter;
 static GtkTreeSelection *selection;
 static GtkTreeStore *roster;
 static GtkWidget *view;
 static GSList *entries, *groups;
+static gint show_unavail = 0;
 
 static GdkPixbuf *offline_icon;
 static GdkPixbuf *online_icon;
@@ -32,6 +34,7 @@ static GdkPixbuf *dnd_icon;
 /* functions*/
 static gint compare_rows(GtkTreeModel *, GtkTreeIter *,
                          GtkTreeIter *, gpointer);
+static gboolean filter_func(GtkTreeModel *, GtkTreeIter *, gpointer);
 static gint get_pixbuf_priority(GdkPixbuf *);
 static GdkPixbuf *load_icon(const gchar *);
 static void load_iconset(void);
@@ -42,6 +45,7 @@ static void row_clicked_cb(GtkTreeView *, GtkTreePath *,
 void ui_roster_add(const gchar *, const gchar *, const gchar *);
 void ui_roster_cleanup(void);
 GtkWidget *ui_roster_setup(void);
+void ui_roster_toggle_offline(void);
 void ui_roster_update(const gchar *);
 /************/
 
@@ -84,6 +88,17 @@ compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
 		return ret;
 	}
 } /* compare_rows */
+
+static gboolean
+filter_func(GtkTreeModel *m, GtkTreeIter *i, gpointer u)
+{
+	GdkPixbuf *p;
+	if(show_unavail) return 1;
+	gtk_tree_model_get(m, i, COL_STATUS, &p, -1);
+	if(p == offline_icon)
+		return 0;
+	return 1;
+}
 
 static GdkPixbuf *
 load_icon(const gchar *status)
@@ -190,11 +205,8 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 		/* did we even find this group? */
 		if(elem) {
 			group = (UiGroup *)elem->data;
-			/* well, it's a bit ugly. TODO */
-			gtk_tree_view_expand_all(GTK_TREE_VIEW(view));
 		} else {
 			/* we'll have to create one */
-			g_printerr("Creating a new group\n");
 			group = g_malloc(sizeof(UiGroup));
 			group->name = g_strdup(g);
 			gtk_tree_store_append(roster, &main_iter, NULL);
@@ -252,8 +264,13 @@ ui_roster_setup(void)
 	GtkTreeSortable *sort;
 	/* tree store */
 	roster = gtk_tree_store_new(NUM_COLS, GDK_TYPE_PIXBUF, G_TYPE_STRING);
+	/* filtering */
+	filter = gtk_tree_model_filter_new(GTK_TREE_MODEL(roster), NULL);
+	gtk_tree_model_filter_set_visible_func(GTK_TREE_MODEL_FILTER(filter),
+	                                       filter_func, NULL, NULL);
 	/* tree view */
-	view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(roster));
+	view = gtk_tree_view_new_with_model(filter);
+	g_object_unref(filter);
 	/* renderers */
 	txt_rend = gtk_cell_renderer_text_new();
 	pix_rend = gtk_cell_renderer_pixbuf_new();
@@ -282,6 +299,13 @@ ui_roster_setup(void)
 	/* returning GtkTreeView so ui_setup can put it somewhere in the window */
 	return view;
 } /* roster_setup */
+
+void
+ui_roster_toggle_offline(void)
+{
+	show_unavail = !show_unavail;
+	gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(filter));
+} /* ui_roster_toggle_offline */
 
 void
 ui_roster_update(const char *jid)
@@ -318,4 +342,6 @@ ui_roster_update(const char *jid)
 	else if(res->status == STATUS_DND) icon = dnd_icon;
 	else if(res->status == STATUS_OFFLINE) icon = offline_icon;
 	gtk_tree_store_set(roster, &(sb->iter), COL_STATUS, icon, -1);
+	/* well, it's a bit ugly. TODO */
+	gtk_tree_view_expand_all(GTK_TREE_VIEW(view));
 } /* ui_roster_update */

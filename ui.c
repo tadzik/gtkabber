@@ -19,11 +19,9 @@ static void append_to_tab(Chattab *, const gchar *);
 static void cbox_changed_cb(GtkComboBox *, gpointer);
 static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
-static Chattab *find_tab_by_child(GtkWidget *);
 static Chattab *find_tab_by_jid(const gchar *);
 static void free_all_tabs(void);
 static void free_tab(gpointer, gpointer);
-static gint match_tab_by_child(gconstpointer, gconstpointer);
 static gint match_tab_by_jid(gconstpointer, gconstpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
@@ -81,11 +79,7 @@ close_active_tab(void)
 	Chattab *tab;
 	int pageno = gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook));
 	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook), pageno);
-	tab = find_tab_by_child(child);
-	if(!tab) {
-		g_printerr("close_active_tab: tab not found!\n");
-		return;
-	}
+	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
 	if(tab->jid == NULL) /* removing status tab is a bad idea */
 		return;
 	g_free(tab->jid);
@@ -102,14 +96,6 @@ destroy(GtkWidget *widget, gpointer data)
 	gtk_main_quit();
 	free_all_tabs();
 } /* destroy */
-
-Chattab *
-find_tab_by_child(GtkWidget *child)
-{
-	GSList *elem;
-	elem = g_slist_find_custom(tabs, child, match_tab_by_child);
-	return (elem) ? (elem->data) : NULL;
-} /* find_tab_by_child */
 
 Chattab *
 find_tab_by_jid(const gchar *jid)
@@ -137,16 +123,6 @@ free_tab(gpointer t, gpointer u)
 } /* free_tab */
 
 static gint
-match_tab_by_child(gconstpointer elem, gconstpointer child)
-{
-	/* called by find_tab_by_child */
-	Chattab *tab = (Chattab *)elem;
-	if(tab->vbox == (GtkWidget *)child)
-		return 0;
-	return 1;
-} /* match_tab_by_child */
-
-static gint
 match_tab_by_jid(gconstpointer elem, gconstpointer jid)
 {
 	/* Internal, used by find_tab_by_jid */	
@@ -162,6 +138,8 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 	/* We react only on Ctrl+something keys */
 	if(e->state & (guint)4) { /* ctrl mask */
 		switch(e->keyval) {
+		case 104: /* h */
+			ui_roster_toggle_offline();
 		case 113: /* q */
 			close_active_tab();
 			break;
@@ -205,9 +183,6 @@ scroll_tab_down(Chattab *tab)
 static void
 setup_cbox(GtkWidget *cbox)
 {
-	/* Internal one setting up status combo box.
-	 * Just here to make ui_setup() readable.
-	 * TODO: Make it inline? */
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Online");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Free for chat");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Away");
@@ -308,7 +283,7 @@ ui_create_tab(const gchar *jid, const gchar *title)
 	                 G_CALLBACK(tab_entry_handler), (void *)tab);
 	/* some vbox to put it together */
 	tab->vbox = gtk_vbox_new(FALSE, 0);
-	/* this will help us finding Chattab struct by the child widget */
+	/* this will help us finding Chattab struct by some of its properties */
 	g_object_set_data(G_OBJECT(tab->vbox), "chattab-data", tab);
 	/* now let's put it all together */
 	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->scrolled);
