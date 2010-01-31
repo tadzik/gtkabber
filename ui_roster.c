@@ -173,7 +173,7 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 			jid = g_strdup(sb->jid);
 		else
 			jid = g_strdup_printf("%s/%s", sb->jid, resname);
-		ui_create_tab(jid, sb->name);
+		ui_create_tab(jid, sb->name, 1);
 		g_free(jid);
 	}
 } /* row_clicked_cb */

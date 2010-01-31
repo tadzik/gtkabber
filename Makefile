@@ -23,7 +23,7 @@ ui.o: types.h ui.c
 	@echo "Compiling ui.c"
 	@$(CC) $(CFLAGS) -c ui.c
 
-ui_roster.o: types.h ui_roster.c
+ui_roster.o: types.h ui.c ui_roster.c
 	@echo "Compiling ui_roster.c"
 	@$(CC) $(CFLAGS) -c ui_roster.c
 

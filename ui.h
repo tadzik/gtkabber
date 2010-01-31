@@ -2,7 +2,7 @@
 #define UI_H
 #include "types.h"
 
-Chattab *ui_create_tab(const gchar *, const gchar *);
+Chattab *ui_create_tab(const gchar *, const gchar *, gint);
 XmppStatus ui_get_status(void);
 const gchar *ui_get_status_msg(void);
 void ui_setup(int *, char ***);

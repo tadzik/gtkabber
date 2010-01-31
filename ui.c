@@ -27,7 +27,7 @@ static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
 static void tab_entry_handler(GtkWidget *, gpointer);
 static void tab_notify(Chattab *);
-Chattab *ui_create_tab(const gchar *, const gchar *);
+Chattab *ui_create_tab(const gchar *, const gchar *, gint);
 XmppStatus ui_get_status(void);
 const gchar *ui_get_status_msg(void);
 void ui_setup(int *, char ***);
@@ -221,7 +221,7 @@ tab_notify(Chattab *t)
 } /* tab_notify */
 
 Chattab *
-ui_create_tab(const gchar *jid, const gchar *title)
+ui_create_tab(const gchar *jid, const gchar *title, gint active)
 {
 	/* Okay, here's a big one. It's called either when user clicks on the buddy
 	 * in the roster (ui_roster.c), or when the new message arrives (xmpp.c,
@@ -269,10 +269,12 @@ ui_create_tab(const gchar *jid, const gchar *title)
 	/* aaand, launch! */
 	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, tab->label);
 	tabs = g_slist_prepend(tabs, tab);
-	gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook),
-	                              gtk_notebook_page_num(GTK_NOTEBOOK(nbook),
-	                                                    tab->vbox));
-	gtk_widget_grab_focus(entry);
+	if(active) {
+		gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook),
+	       	                              gtk_notebook_page_num(GTK_NOTEBOOK(nbook),
+	                                                            tab->vbox));
+		gtk_widget_grab_focus(entry);
+	}
 	return tab;
 } /* ui_create_tab */
 
@@ -326,7 +328,7 @@ ui_setup(int *argc, char **argv[])
 	                               GTK_POLICY_AUTOMATIC);
 	gtk_window_set_title(GTK_WINDOW(window), "gtkabber");
 	/* setting up status tab */
-	ui_create_tab(NULL, "Status");
+	ui_create_tab(NULL, "Status", 0);
 	/* packing */
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), rview);
 	gtk_container_add(GTK_CONTAINER(window), hpaned);
@@ -406,7 +408,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 			g_free(shortjid);
 			return;
 		}
-		tab = ui_create_tab(jid, sb->name);
+		tab = ui_create_tab(jid, sb->name, 0);
 	}
 	/* actual message printing - two lines of this whole function! */
 	str = g_strdup_printf("<== %s\n", msg);
