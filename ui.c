@@ -20,7 +20,6 @@ static void cbox_changed_cb(GtkComboBox *, gpointer);
 static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
 static void free_all_tabs(void);
-static void free_tab(gpointer, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
@@ -99,18 +98,16 @@ static void
 free_all_tabs(void)
 {
 	if(tabs) {
-		g_slist_foreach(tabs, (GFunc)free_tab, NULL);
+		GSList *elem;
+		for(elem = tabs; elem; elem = elem->next) {
+			Chattab *t = (Chattab *)elem->data;
+			g_free(t->jid);
+			g_free(t->title);
+			g_free(t);
+		}
 		g_slist_free(tabs);
 	}
 } /* free_all_tabs*/
-
-static void
-free_tab(gpointer t, gpointer u)
-{
-	Chattab *tab = (Chattab *)t;
-	g_free(tab->jid);
-	g_free(tab->title);
-} /* free_tab */
 
 static gboolean
 keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
@@ -412,7 +409,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 		tab = ui_create_tab(jid, sb->name);
 	}
 	/* actual message printing - two lines of this whole function! */
-	str = g_strdup_printf("<-- %s\n", msg);
+	str = g_strdup_printf("<== %s\n", msg);
 	append_to_tab(tab, str);
 	/* bolding tab title if it's not the status tab
 	 * (the function will check whether the tab is active or not,

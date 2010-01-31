@@ -240,10 +240,11 @@ ui_roster_cleanup(void)
 	/* There's no memory allocated in the list besides the elements itself */
 	g_slist_foreach(entries, (GFunc)g_free, NULL);
 	g_slist_free(entries);
-	/* pardon, I'm sick of this g_slist_foreach */
+	/* freeing groups data */
 	for(elem = groups; elem; elem = elem->next) {
 		UiGroup *g = elem->data;
 		g_free(g->name);
+		g_free(g);
 	}
 	g_slist_free(groups);
 }

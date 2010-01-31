@@ -6,8 +6,6 @@
 #include "ui_roster.h"
 
 /* functions */
-static void free_entry(gpointer);
-static void free_res(gpointer);
 void xmpp_roster_add_resource(Buddy *, Resource *);
 void xmpp_roster_cleanup();
 Buddy *xmpp_roster_find_by_jid(const char *);
@@ -21,26 +19,6 @@ void xmpp_roster_request(LmConnection *);
 GSList *roster;
 /***************/
 
-static void
-free_entry(gpointer elem)
-{
-	Buddy *sb = (Buddy *)elem;
-	g_free(sb->name);
-	g_free(sb->jid);
-	g_free(sb->group);
-	g_slist_foreach(sb->resources, (GFunc)free_res, NULL);
-	if(sb->resources) g_slist_free(sb->resources);
-	g_free(sb);
-} /* free_entry */
-
-static void
-free_res(gpointer elem)
-{
-	Resource *foo = (Resource *)elem;
-	g_free(foo->name);
-	g_free(foo->status_msg);
-} /* free_res */
-
 void
 xmpp_roster_add_resource(Buddy *b, Resource *r)
 {
@@ -51,7 +29,21 @@ xmpp_roster_add_resource(Buddy *b, Resource *r)
 void
 xmpp_roster_cleanup()
 {
-	g_slist_foreach(roster, (GFunc)free_entry, NULL);
+	GSList *elem, *res;
+	for(elem = roster; elem; elem = elem->next) {
+		Buddy *b = (Buddy *)elem->data;
+		g_free(b->name);
+		g_free(b->jid);
+		g_free(b->group);
+		for(res = b->resources; res; res = res->next) {
+			Resource *r = (Resource *)res->data;
+			g_free(r->name);
+			g_free(r->status_msg);
+			g_free(r);
+		}
+		if(b->resources) g_slist_free(b->resources);
+		g_free(b);
+	}
 	if(roster) g_slist_free(roster);
 } /* xmpp_roster_cleanup */
 
