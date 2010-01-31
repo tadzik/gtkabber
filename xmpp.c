@@ -33,15 +33,13 @@ LmHandlerResult xmpp_pres_handler(LmMessageHandler *, LmConnection *,
                                   LmMessage *, gpointer);
 void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
+static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
 static char *xmpp_status_to_str(XmppStatus);
 static char *xmpp_status_readable(XmppStatus);
 /*************/
 
 /* global variables */
 LmConnection *connection;
-static LmMessageHandler *iq_handler;
-static LmMessageHandler *pres_handler;
-static LmMessageHandler *mesg_handler;
 /********************/
 
 static void
@@ -78,18 +76,22 @@ connection_auth_cb(LmConnection *c, gboolean success, gpointer udata) {
 	if(!success) {
 		ui_status_print("ERROR: Authentication failed\n");
 	} else {
-		iq_handler = lm_message_handler_new(xmpp_iq_handler, NULL, NULL);
-		lm_connection_register_message_handler(c, iq_handler,
+		LmMessageHandler *handler;
+		handler = lm_message_handler_new(xmpp_iq_handler, NULL, NULL);
+		lm_connection_register_message_handler(c, handler,
 		                                       LM_MESSAGE_TYPE_IQ,
 		                                       LM_HANDLER_PRIORITY_NORMAL);
-		mesg_handler = lm_message_handler_new(xmpp_mesg_handler, NULL, NULL);
-		lm_connection_register_message_handler(c, mesg_handler,
+		lm_message_handler_unref(handler);
+		handler = lm_message_handler_new(xmpp_mesg_handler, NULL, NULL);
+		lm_connection_register_message_handler(c, handler,
 		                                       LM_MESSAGE_TYPE_MESSAGE,
 		                                       LM_HANDLER_PRIORITY_NORMAL);
-		pres_handler = lm_message_handler_new(xmpp_pres_handler, NULL, NULL);
-		lm_connection_register_message_handler(c, pres_handler,
+		lm_message_handler_unref(handler);
+		handler = lm_message_handler_new(xmpp_pres_handler, NULL, NULL);
+		lm_connection_register_message_handler(c, handler,
 		                                       LM_MESSAGE_TYPE_PRESENCE,
 		                                       LM_HANDLER_PRIORITY_NORMAL);
+		lm_message_handler_unref(handler);
 		xmpp_roster_request(c);	
 	}
 }
@@ -166,6 +168,37 @@ disconnect() {
 	}
 }
 
+static LmSSLResponse
+ssl_cb(LmSSL *ssl, LmSSLStatus st, gpointer u)
+{
+	switch(st) {
+	case LM_SSL_STATUS_NO_CERT_FOUND:
+		ui_status_print("SSL: No certificate found!\n");
+		break;
+	case LM_SSL_STATUS_UNTRUSTED_CERT:
+		ui_status_print("SSL: Certificate not trusted!\n");
+		break;
+	case LM_SSL_STATUS_CERT_EXPIRED:
+		ui_status_print("SSL: Certificate has expired!\n");
+		break;
+	case LM_SSL_STATUS_CERT_NOT_ACTIVATED:
+		ui_status_print("SSL: Certificate has not been activated!\n");
+		break;
+	case LM_SSL_STATUS_CERT_HOSTNAME_MISMATCH:
+		ui_status_print("SSL: Certificate hostname does not match "
+		                "expected hostname!\n");
+		break;
+	case LM_SSL_STATUS_CERT_FINGERPRINT_MISMATCH:
+		/* we're not checking fingerprints anyway. TODO */
+		break;
+	case LM_SSL_STATUS_GENERIC_ERROR:
+		ui_status_print("SSL: Generic error!\n");
+		break;
+	}
+	/* TODO: we should return LM_SSL_RESPONSE_STOP if the user is paranoic */
+	return LM_SSL_RESPONSE_CONTINUE;	
+} /* ssl_cb */
+
 void
 xmpp_cleanup() {
 	disconnect();
@@ -176,9 +209,18 @@ xmpp_cleanup() {
 
 void
 xmpp_init(void) {
+	LmSSL *ssl;
 	config_parse_rcfile();
 	connection = lm_connection_new(NULL);
-	/*TODO: Write this ssl thing*/
+	/* TODO: Check if user actually wants ssl (config) */
+	if(!lm_ssl_is_supported()) {
+		ui_status_print("ERROR: SSL not available\n");
+	} else {
+		lm_connection_set_port(connection, LM_CONNECTION_DEFAULT_PORT_SSL);
+		ssl = lm_ssl_new(NULL, ssl_cb, NULL, NULL);
+		lm_connection_set_ssl(connection, ssl);
+		lm_ssl_unref(ssl);
+	}
 	lm_connection_set_keep_alive_rate(connection, 30);
 	lm_connection_set_disconnect_function(connection, connection_disconnect_cb,
 	                                      NULL, NULL);

@@ -73,8 +73,6 @@ config_parse_rcfile(void)
 			if(lines[i][0] == '\0' || lines[i][0] == '#')
 				continue;
 			else {
-				/* We can maybe don't care about what failed.
-				 * TODO: think about it later */
 				gint status = commands_exec(lines[i]);
 				if(status == 1) ui_status_print("Line %d: parsing failed: "
 				                                "%s\n", i+1, lines[i]);
