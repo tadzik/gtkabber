@@ -140,6 +140,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 		switch(e->keyval) {
 		case 104: /* h */
 			ui_roster_toggle_offline();
+			break;
 		case 113: /* q */
 			close_active_tab();
 			break;

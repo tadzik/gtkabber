@@ -140,11 +140,14 @@ match_entry_by_iter(gconstpointer e, gconstpointer i)
 	/* Called by row_clicked_cb callback, to determine
 	 * which row have we actually clicked */
 	gint ret;
-	GtkTreePath *p1, *p2;
+	GtkTreeIter iter;
 	GtkTreeModel *m = GTK_TREE_MODEL(roster);
+	GtkTreePath *p1, *p2;
 	UiBuddy *sb = (UiBuddy *)e;
+	gtk_tree_model_filter_convert_iter_to_child_iter(GTK_TREE_MODEL_FILTER(filter),
+	                                                 &iter, (GtkTreeIter *)i);
 	p1 = gtk_tree_model_get_path(m, &(sb->iter));
-	p2 = gtk_tree_model_get_path(m, (GtkTreeIter *)i);
+	p2 = gtk_tree_model_get_path(m, &iter);
 	ret = gtk_tree_path_compare(p1, p2);
 	gtk_tree_path_free(p1);
 	gtk_tree_path_free(p2);
