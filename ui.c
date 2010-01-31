@@ -19,10 +19,8 @@ static void append_to_tab(Chattab *, const gchar *);
 static void cbox_changed_cb(GtkComboBox *, gpointer);
 static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
-static Chattab *find_tab_by_jid(const gchar *);
 static void free_all_tabs(void);
 static void free_tab(gpointer, gpointer);
-static gint match_tab_by_jid(gconstpointer, gconstpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
@@ -97,14 +95,6 @@ destroy(GtkWidget *widget, gpointer data)
 	free_all_tabs();
 } /* destroy */
 
-Chattab *
-find_tab_by_jid(const gchar *jid)
-{
-	GSList *elem;
-	elem = g_slist_find_custom(tabs, jid, match_tab_by_jid);
-	return (elem) ? (elem->data) : NULL;
-} /* find_tab_by_jid */
-
 static void
 free_all_tabs(void)
 {
@@ -121,16 +111,6 @@ free_tab(gpointer t, gpointer u)
 	g_free(tab->jid);
 	g_free(tab->title);
 } /* free_tab */
-
-static gint
-match_tab_by_jid(gconstpointer elem, gconstpointer jid)
-{
-	/* Internal, used by find_tab_by_jid */	
-	Chattab *tab = (Chattab *)elem;
-	/* This alredy covers the status tab case,
-	 * as g_strcmp0 handles NULL string well */
-	return g_strcmp0(tab->jid, jid);
-} /* match_tab_by_jid */
 
 static gboolean
 keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
@@ -230,9 +210,6 @@ tab_entry_handler(GtkWidget *e, gpointer p)
 static void
 tab_notify(Chattab *t)
 {
-	/* This makes all necessary notifications on the selected tab,
-	 * setting wm urgency (TODO: should be defined by configuration)
-	 * as well as bolding the tab title */
 	gchar *markup;
 	GtkWidget *activechild;
 	set_wm_urgency(); /* this is done even if the tab is active */
@@ -408,9 +385,16 @@ ui_tab_print_message(const char *jid, const char *msg)
 {
 	/* Called by xmpp_mesg_handler(), prints the incoming message
 	 * to the approprate chat tab */
-	Chattab *tab;
+	Chattab *tab = NULL;
+	GSList *elem;
 	char *str;
-	tab = find_tab_by_jid(jid);
+	for(elem = tabs; elem; elem = elem->next) {
+		Chattab *t = (Chattab *)elem->data;
+		if(g_strcmp0(t->jid, jid) == 0) {
+			tab = t;
+			break;
+		}
+	}
 	if(!tab) {
 		Buddy *sb;
 		char *shortjid, *slash;

@@ -8,8 +8,6 @@
 /* functions */
 static void free_entry(gpointer);
 static void free_res(gpointer);
-static gint match_by_jid(gconstpointer, gconstpointer);
-static gint match_res_by_name(gconstpointer, gconstpointer);
 void xmpp_roster_add_resource(Buddy *, Resource *);
 void xmpp_roster_cleanup();
 Buddy *xmpp_roster_find_by_jid(const char *);
@@ -43,20 +41,6 @@ free_res(gpointer elem)
 	g_free(foo->status_msg);
 } /* free_res */
 
-static gint
-match_by_jid(gconstpointer entry, gconstpointer jid)
-{
-	Buddy *foo = (Buddy *)entry;
-	return g_strcmp0(foo->jid, jid);
-} /* match_by_jid */
-
-static gint
-match_res_by_name(gconstpointer res, gconstpointer name)
-{
-	Resource *foo = (Resource *)res;
-	return g_strcmp0(foo->name, name);
-} /* match_res_by_name */
-
 void
 xmpp_roster_add_resource(Buddy *b, Resource *r)
 {
@@ -75,22 +59,24 @@ Resource *
 xmpp_roster_find_res_by_name(Buddy *sb, const char *name)
 {
 	GSList *elem;
-	elem = g_slist_find_custom(sb->resources, name, match_res_by_name);
-	if(elem)
-		return (Resource *)(elem->data);
-	else
-		return NULL;
+	Resource *res;
+	for(elem = sb->resources; elem; elem = elem->next) {
+		res = (Resource *)elem->data;
+		if(g_strcmp0(name, res->name) == 0) return res;
+	}
+	return NULL;
 } /* xmpp_roster_find_res_by_name */
 
 Buddy *
 xmpp_roster_find_by_jid(const char *jid)
 {
+	Buddy *bud;
 	GSList *elem;
-	elem = g_slist_find_custom(roster, jid, match_by_jid);
-	if(elem)
-		return (Buddy *)(elem->data);
-	else
-		return NULL;
+	for(elem = roster; elem; elem = elem->next) {
+		bud = (Buddy *)elem->data;
+		if(g_strcmp0(bud->jid, jid) == 0) return bud;
+	}
+	return NULL;
 } /* xmpp_roster_find_by_jid */
 
 const char *

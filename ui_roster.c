@@ -39,7 +39,6 @@ static gint get_pixbuf_priority(GdkPixbuf *);
 static GdkPixbuf *load_icon(const gchar *);
 static void load_iconset(void);
 static gint match_entry_by_iter(gconstpointer, gconstpointer);
-static gint match_entry_by_jid(gconstpointer, gconstpointer);
 static void row_clicked_cb(GtkTreeView *, GtkTreePath *,
                            GtkTreeViewColumn *, gpointer);
 void ui_roster_add(const gchar *, const gchar *, const gchar *);
@@ -153,15 +152,6 @@ match_entry_by_iter(gconstpointer e, gconstpointer i)
 	gtk_tree_path_free(p2);
 	return ret;
 } /* match_entry_by_iter */
-
-static int
-match_entry_by_jid(gconstpointer e, gconstpointer j)
-{
-	/* Used as a comparing function in ui_roster_update(),
-	 * not called directly, just a pointer passed to g_slist_find_custom */
-	UiBuddy *sb = (UiBuddy *)e;
-	return g_strcmp0(sb->jid, j);
-} /* match_entry_by_jid */
 
 static void
 row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
@@ -316,19 +306,24 @@ ui_roster_update(const char *jid)
 	/* This function updates the appropriate entry, changing its status icon.
 	 * The entry is determined by the given jid, which is compared to the one
 	 * kept in entries GSList */
-	GSList *entry;
-	UiBuddy *sb;
+	GSList *elem;
+	UiBuddy *sb = NULL;
 	Resource *res;
 	GdkPixbuf *icon;
 	/* looking up entry by jid */
-	entry = g_slist_find_custom(entries, jid, match_entry_by_jid);
-	if(!entry) {
+	for(elem = entries; elem; elem = elem->next) {
+		UiBuddy *b = (UiBuddy *)elem->data;
+		if(g_strcmp0(jid, b->jid) == 0) {
+			sb = b;
+			break;
+		}
+	}
+	if(!sb) {
 		/* should never happen */
 		g_printerr("ui_roster_update: cannot update "
 		           "non-existing entry %s\n", jid);
 		return;
 	}
-	sb = (UiBuddy *)entry->data;
 	/* looking for the best resource */
 	res = xmpp_roster_find_res_by_name(xmpp_roster_find_by_jid(jid),
 	                                   xmpp_roster_get_best_resname(jid));
