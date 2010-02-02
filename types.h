@@ -18,6 +18,25 @@ typedef enum {
 	STATUS_OFFLINE
 } XmppStatus;
 
+typedef enum {
+	/* strings */
+	SERVER,
+	USERNAME,
+	PASSWD,
+	RESOURCE,
+	PRIORITY,
+	/* integers */
+	USE_SSL,
+	PORT,
+	/**********/
+	NUM_SETTINGS
+} Settings;
+
+typedef union {
+	gchar *s;
+	gint i;
+} Option;
+
 typedef struct {
 	/* Strings in name, jid and group are being allocated
 	 * when the roster is parsed xmpp_roster_parse_query(),

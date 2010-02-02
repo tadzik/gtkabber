@@ -1,3 +1,4 @@
+#include "types.h"
 #include "ui.h"
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -14,27 +15,22 @@
 void config_cleanup(void);
 gint commands_exec(const char *);
 void config_parse_rcfile(void);
+Option get_settings(Settings);
+static void init_settings(void);
 static gint set(const char *);
 static void set_status(const char *);
 /*************/
 
-/* global vars */
-gchar *conf_passwd = NULL;
-gint conf_port = 0;
-gchar *conf_priority = NULL; /*it's char, for we are passing it as char in lm_ functions*/
-gchar *conf_res= NULL;
-gchar *conf_server = NULL;
-gchar *conf_username = NULL;
-/***************/
+Option settings[NUM_SETTINGS];
 
 void
 config_cleanup(void)
 {
-	g_free(conf_passwd);
-	g_free(conf_priority);
-	g_free(conf_res);
-	g_free(conf_server);
-	g_free(conf_username);
+	int i;
+	/* cleaning strings in settings[] */
+	for(i=0; i != USE_SSL; i++) {
+		g_free(settings[i].s);
+	}
 }
 
 int
@@ -59,6 +55,7 @@ config_parse_rcfile(void)
 	gchar *contents;
 	gchar **lines;
 	GError *err = NULL;
+	init_settings();
 	path = g_strdup_printf("%s/.config/gtkabberrc", g_getenv("HOME"));
 	/* loading file contents */
 	if(!g_file_get_contents(path, &contents, NULL, &err)) {
@@ -85,6 +82,26 @@ config_parse_rcfile(void)
 	g_free(path);
 } /* config_parse_rcfile */
 
+Option
+get_settings(Settings s)
+{
+	return settings[s];
+}
+
+static void
+init_settings(void)
+{
+	/* strings go NULL, ints go 0 */
+	int i;
+	for(i = 0; i != USE_SSL; i++) {
+		settings[i].s = NULL;
+	}
+	settings[RESOURCE].s = g_strdup("gtkabber");
+	for(i = USE_SSL; i != NUM_SETTINGS; i++) {
+		settings[i].i = 0;
+	}
+} /* init_settings */
+
 static int 
 set(const char *params)
 {
@@ -101,22 +118,22 @@ set(const char *params)
 	 *         params  arg
 	 */
 	if(strstr(params, "server") == params) {
-		g_free(conf_server);
-		conf_server = g_strdup(arg);
+		g_free(settings[SERVER].s);
+		settings[SERVER].s = g_strdup(arg);
 	} else if(strstr(params, "username") == params) {
-		g_free(conf_username);
-		conf_username = g_strdup(arg);
+		g_free(settings[USERNAME].s);
+		settings[USERNAME].s = g_strdup(arg);
 	} else if(strstr(params, "passwd") == params) {
-		g_free(conf_passwd);
-		conf_passwd = g_strdup(arg);
+		g_free(settings[PASSWD].s);
+		settings[PASSWD].s = g_strdup(arg);
 	} else if(strstr(params, "resource") == params) {
-		g_free(conf_res);
-		conf_res = g_strdup(arg);
+		g_free(settings[RESOURCE].s);
+		settings[RESOURCE].s = g_strdup(arg);
 	} else if(strstr(params, "priority") == params) {
-		g_free(conf_priority);
-		conf_priority = g_strdup(arg);
+		g_free(settings[PRIORITY].s);
+		settings[PRIORITY].s = g_strdup(arg);
 	} else if(strstr(params, "port") == params) {
-		conf_port = atoi(arg);
+		settings[PORT].i = atoi(arg);
 	} else if(strstr(params, "status ") == params) {
 		set_status(arg);
 	} else if(strstr(params, "status_msg") == params) {

@@ -7,15 +7,6 @@
 #include "xmpp_roster.h"
 #include "types.h"
 
-/* fetched from commands.c */
-extern gchar *conf_passwd;
-extern int conf_port;
-extern gchar *conf_priority;
-extern gchar *conf_res;
-extern gchar *conf_server;
-extern gchar *conf_username;
-/*************************/
-
 /* functions */
 static void connection_auth_cb(LmConnection *, gboolean, gpointer);
 static void connection_disconnect_cb(LmConnection *, LmDisconnectReason,
@@ -38,13 +29,24 @@ static char *xmpp_status_to_str(XmppStatus);
 static char *xmpp_status_readable(XmppStatus);
 /*************/
 
+
+
 /* global variables */
 LmConnection *connection;
+/*
+int conf_port = get_settings(PORT).i;
+gchar *conf_priority = get_settings(PRIORITY).s;
+gchar *conf_res = get_settings(RESOURCE).s;
+gchar *conf_passwd = get_settings(PASSWD).s;
+gchar *conf_server = get_settings(SERVER).s;
+gchar *conf_username = get_settings(USERNAME).s;
+*/
 /********************/
 
 static void
 connect() {
 	GError *err = NULL;
+	gchar *conf_server = get_settings(SERVER).s;
 	if(!conf_server) {
 		ui_status_print("ERROR: Insufficient configuration, "
 		                "connecting aborted (server not set)\n");
@@ -131,6 +133,9 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 static void
 connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 	GError *err = NULL;
+	gchar *conf_passwd = get_settings(PASSWD).s;
+	gchar *conf_res = get_settings(RESOURCE).s;
+	gchar *conf_username = get_settings(USERNAME).s;
 	if(success) {
 		if(!conf_username) {
 			ui_status_print("ERROR: Insufficient configuration, "
@@ -155,6 +160,7 @@ connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 static void
 disconnect() {
 	LmMessage *m;
+	gchar *conf_server = get_settings(SERVER).s;
 	if(!connection)	return;
 	if(lm_connection_get_state(connection)
 	   != LM_CONNECTION_STATE_AUTHENTICATED) {
@@ -356,6 +362,7 @@ xmpp_set_status(XmppStatus s)
 	LmMessage *p;
 	GError *err = NULL;
 	const char *status, *status_msg;
+	gchar *conf_priority = get_settings(PRIORITY).s;
 	if(!connection || (lm_connection_get_state(connection)
                       != LM_CONNECTION_STATE_AUTHENTICATED)) {
 		connect();	
