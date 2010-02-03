@@ -27,9 +27,8 @@ void xmpp_send_message(const char *, const char *);
 static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
 static char *xmpp_status_to_str(XmppStatus);
 static char *xmpp_status_readable(XmppStatus);
+void xmpp_roster_parsed_cb(void);
 /*************/
-
-
 
 /* global variables */
 LmConnection *connection;
@@ -112,6 +111,7 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 	default:
 		ui_status_print("Connection closed due to unknown error\n");
 	}
+	initial_presence_sent = 0;
 }
 
 
@@ -156,7 +156,6 @@ disconnect() {
 	if(lm_connection_is_open(connection)) {
 		ui_status_print("Closing connection to %s\n", conf_server);
 		lm_connection_close(connection, NULL);
-		initial_presence_sent = 0;
 		ui_roster_offline();
 		g_printerr("Disconnected\n");
 	}
@@ -245,10 +244,6 @@ xmpp_iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		if(g_strcmp0(lm_message_node_get_attribute(query, "xmlns"),
 		             "jabber:iq:roster") == 0) {
 			xmpp_roster_parse_query(c, query);
-			if(!initial_presence_sent) {
-				xmpp_set_status(ui_get_status());
-				initial_presence_sent = 1;
-			}
 		}
 	}
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
@@ -379,10 +374,8 @@ xmpp_set_status(XmppStatus s)
 	GError *err = NULL;
 	const char *status, *status_msg;
 	gchar *conf_priority = get_settings(PRIORITY).s;
-	if(!connection
-	   || (lm_connection_get_state(connection)
-              != LM_CONNECTION_STATE_AUTHENTICATED)) {
-		ui_status_print("Cannot set status: connection not ready. Reconnecting\n");
+	if(!connection || !lm_connection_is_open(connection)) {
+		ui_status_print("Not connected, connecting\n");
 		connect();
 		return;
 	}
@@ -426,5 +419,12 @@ xmpp_status_readable(XmppStatus st)
 	else if(st == STATUS_XA) return "not available";
 	else if(st == STATUS_DND) return "do not disturb";
 	else if(st == STATUS_OFFLINE) return "offline";
-	else return "...what the fuck?";
+	else return "unknown";
 } /* xmpp_status_readable */
+
+void
+xmpp_roster_parsed_cb(void)
+{
+	if(!initial_presence_sent)
+		xmpp_set_status(ui_get_status());
+}

@@ -31,7 +31,7 @@ xmpp.o: types.h ui.h xmpp.c commands.h xmpp_roster.h
 	@echo "Compiling xmpp.c"
 	@$(CC) $(CFLAGS) -c xmpp.c
 
-xmpp_roster.o: types.h ui.h xmpp_roster.c
+xmpp_roster.o: types.h ui.h xmpp.h xmpp_roster.c
 	@echo "Compiling xmpp_roster.c"
 	@$(CC) $(CFLAGS) -c xmpp_roster.c
 

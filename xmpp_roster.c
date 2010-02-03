@@ -4,6 +4,7 @@
 #include "ui.h"
 #include "types.h"
 #include "ui_roster.h"
+#include "xmpp.h"
 
 /* functions */
 void xmpp_roster_add_resource(Buddy *, Resource *);
@@ -142,6 +143,7 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 		g_printerr("Adding %s to roster\n", entry->name);
 		ui_roster_add(entry->jid, entry->name, entry->group);
 	}
+	xmpp_roster_parsed_cb();
 } /* xmpp_roster_parse_query */
 
 void
@@ -153,7 +155,6 @@ xmpp_roster_request(LmConnection *conn)
 	req = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_IQ,
 	                                   LM_MESSAGE_SUB_TYPE_GET);
 	query = lm_message_node_add_child(req->node, "query", NULL);
-	/*TODO: Make sure if I don't need to free this*/
 	lm_message_node_set_attributes(query, "xmlns", "jabber:iq:roster", NULL);
 	if(!lm_connection_send(conn, req, &err)) {
 		ui_status_print("Error sending roster request: %s\n", err->message);
