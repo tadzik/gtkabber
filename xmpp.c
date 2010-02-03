@@ -33,14 +33,6 @@ static char *xmpp_status_readable(XmppStatus);
 
 /* global variables */
 LmConnection *connection;
-/*
-int conf_port = get_settings(PORT).i;
-gchar *conf_priority = get_settings(PRIORITY).s;
-gchar *conf_res = get_settings(RESOURCE).s;
-gchar *conf_passwd = get_settings(PASSWD).s;
-gchar *conf_server = get_settings(SERVER).s;
-gchar *conf_username = get_settings(USERNAME).s;
-*/
 /********************/
 
 static void
@@ -122,10 +114,6 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 		break;
 	default:
 		ui_status_print("Connection closed due to unknown error\n");
-	}
-	if(reason != LM_DISCONNECT_REASON_OK) {
-		ui_status_print("Reconnecting…\n");
-		connect();
 	}
 }
 
@@ -216,17 +204,32 @@ xmpp_cleanup() {
 void
 xmpp_init(void) {
 	LmSSL *ssl;
+	int use_ssl, use_tls, port;
+	char *jid;
 	config_init();
 	connection = lm_connection_new(NULL);
-	/* TODO: Check if user actually wants ssl (config) */
-	if(!lm_ssl_is_supported()) {
-		ui_status_print("ERROR: SSL not available\n");
-	} else {
-		lm_connection_set_port(connection, LM_CONNECTION_DEFAULT_PORT_SSL);
-		ssl = lm_ssl_new(NULL, ssl_cb, NULL, NULL);
-		lm_connection_set_ssl(connection, ssl);
-		lm_ssl_unref(ssl);
+	use_ssl = get_settings(USE_SSL).i;
+	use_tls = get_settings(USE_TLS).i;
+	jid = get_settings(JID).s;
+	port = get_settings(PORT).i;
+	if(use_ssl || use_tls) {
+		if(!lm_ssl_is_supported()) {
+			ui_status_print("Error: SSL not available\n");
+		} else if(use_ssl && use_tls) {
+			ui_status_print("Error: You can't use ssl and tls at the same time");
+		} else {
+			ssl = lm_ssl_new(NULL, ssl_cb, NULL, NULL);
+			lm_ssl_use_starttls(ssl, !use_ssl, use_tls);
+			lm_connection_set_ssl(connection, ssl);
+			lm_ssl_unref(ssl);
+		}
 	}
+	if(!port) {
+		port = (use_ssl) ? LM_CONNECTION_DEFAULT_PORT_SSL
+		                 : LM_CONNECTION_DEFAULT_PORT;
+	}
+	lm_connection_set_port(connection, port);
+	lm_connection_set_jid(connection, jid);
 	lm_connection_set_keep_alive_rate(connection, 30);
 	lm_connection_set_disconnect_function(connection, connection_disconnect_cb,
 	                                      NULL, NULL);

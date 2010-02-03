@@ -21,12 +21,14 @@ typedef enum {
 typedef enum {
 	/* strings */
 	SERVER,
+	JID,
 	USERNAME,
 	PASSWD,
 	RESOURCE,
 	PRIORITY,
 	/* integers */
 	USE_SSL,
+	USE_TLS,
 	PORT,
 	/**********/
 	NUM_SETTINGS

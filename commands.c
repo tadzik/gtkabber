@@ -58,7 +58,7 @@ config_init(void)
 {
 	/* This one opens rc file, reads its contents and passes the lines
 	 * to commands_exec() */	
-	char *path;
+	char *atpos, *path;
 	init_settings();
 	lua = lua_open();
 	luaL_openlibs(lua);
@@ -70,13 +70,31 @@ config_init(void)
 		return;
 	}
 	lua_getglobal(lua, "server");
-	lua_getglobal(lua, "username");
+	lua_getglobal(lua, "jid");
 	lua_getglobal(lua, "passwd");
 	lua_getglobal(lua, "resource");
-	settings[SERVER].s = g_strdup(lua_tostring(lua, -4));
-	settings[USERNAME].s = g_strdup(lua_tostring(lua, -3));
-	settings[PASSWD].s = g_strdup(lua_tostring(lua, -2));
-	settings[RESOURCE].s = g_strdup(lua_tostring(lua, -1));
+	lua_getglobal(lua, "use_ssl");
+	lua_getglobal(lua, "use_tls");
+	lua_getglobal(lua, "port");
+	settings[SERVER].s = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+	settings[JID].s = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+	/* extracting username from jid */
+	atpos = strchr(settings[JID].s, '@');
+	if(atpos)
+		settings[USERNAME].s = g_strndup(settings[JID].s,
+	                                         atpos - settings[JID].s);
+	settings[PASSWD].s = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+	settings[RESOURCE].s = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+	settings[USE_SSL].i = lua_toboolean(lua, 1);
+	lua_remove(lua, 1);
+	settings[USE_TLS].i = lua_toboolean(lua, 1);
+	lua_remove(lua, 1);
+	settings[PORT].i = (int)lua_tonumber(lua, 1);
+	lua_remove(lua, 1);
 	g_free(path);
 } /* config_parse_rcfile */
 
