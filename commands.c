@@ -81,10 +81,12 @@ config_init(void)
 	settings[JID].s = g_strdup(lua_tostring(lua, 1));
 	lua_remove(lua, 1);
 	/* extracting username from jid */
-	atpos = strchr(settings[JID].s, '@');
-	if(atpos)
-		settings[USERNAME].s = g_strndup(settings[JID].s,
-	                                         atpos - settings[JID].s);
+	if(settings[JID].s) {
+		atpos = strchr(settings[JID].s, '@');
+		if(atpos)
+			settings[USERNAME].s = g_strndup(settings[JID].s,
+	                                                 atpos - settings[JID].s);
+	}
 	settings[PASSWD].s = g_strdup(lua_tostring(lua, 1));
 	lua_remove(lua, 1);
 	settings[RESOURCE].s = g_strdup(lua_tostring(lua, 1));
