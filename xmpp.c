@@ -38,7 +38,12 @@ LmConnection *connection;
 static void
 connect() {
 	GError *err = NULL;
-	gchar *conf_server = get_settings(SERVER).s;
+	gchar *conf_server;
+	if(lm_connection_is_open(connection)) {
+		ui_status_print("connect: connection alredy opened, aborting\n");
+		return;	
+	}
+	conf_server = get_settings(SERVER).s;
 	if(!conf_server) {
 		ui_status_print("ERROR: Insufficient configuration, "
 		                "connecting aborted (server not set)\n");
@@ -46,15 +51,6 @@ connect() {
 	} else {
 		if(!lm_connection_get_server(connection))
 			lm_connection_set_server(connection, conf_server);
-	}
-	if(lm_connection_is_open(connection)) {
-		GError *err = NULL;
-		ui_status_print("WHOOPS: Connection was alredy opened, closing\n");
-		if(!lm_connection_close(connection, &err)) {
-			ui_status_print("Error closing connection: %s\n", err->message);
-			g_error_free(err);
-		}
-		
 	}
 	if(!lm_connection_open(connection, (LmResultFunction)connection_open_cb,
 	                       NULL, NULL, &err)) {
@@ -378,8 +374,8 @@ xmpp_set_status(XmppStatus s)
 	gchar *conf_priority = get_settings(PRIORITY).s;
 	if(!connection || (lm_connection_get_state(connection)
                       != LM_CONNECTION_STATE_AUTHENTICATED)) {
-		connect();	
-		/*succesful authentication will send us here again*/
+		ui_status_print("Cannot set status: Not authenticated. Reconnecting\n");
+		connect();
 		return;
 	}
 	status_msg = ui_get_status_msg();
