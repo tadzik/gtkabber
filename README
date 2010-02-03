@@ -1,4 +1,0 @@
-This is gtkabber. Just like it seems to be, it's an xmpp client in GTK+ library. It is also usable in single window, like TKabber. It's not yet finished, and not yet as cute as it is gonna be (scripting, remote-control, everything is still to be done), but I'm putting it here as there are some people willing to test it or even use it. If you are one of them, have fun. Also, I'm quite a begginer in C and espeially GTK+, so constructive criticism is really welcome.
-
-Thanks for taking a look,
-Ted
