@@ -2,10 +2,10 @@ INCS=$(shell pkg-config --cflags gtk+-2.0 loudmouth-1.0)
 LIBS=$(shell pkg-config --libs gtk+-2.0 loudmouth-1.0)
 WEXTRA=-Wclobbered -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized #Wextra without -Wunused-parameter
 PREFIX?=/usr/local
-INSTALLDIF?=$(DESTDIR)$(PREFIX)
+INSTALLDIR?=$(DESTDIR)$(PREFIX)
 
 CC=gcc
-CFLAGS=-ansi -Wall -Werror -pedantic $(WEXTRA) -g $(INCS)
+CFLAGS=-ansi -Wall -Werror -pedantic -O2 $(WEXTRA) -g $(INCS)
 LD=gcc
 LDFLAGS=$(LIBS)
 

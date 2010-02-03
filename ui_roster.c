@@ -340,6 +340,10 @@ ui_roster_update(const char *jid)
 	else if(res->status == STATUS_XA) icon = xa_icon;
 	else if(res->status == STATUS_DND) icon = dnd_icon;
 	else if(res->status == STATUS_OFFLINE) icon = offline_icon;
+	else {
+		ui_status_print("ui_roster_update: buddy has invalid status\n");
+		return;	
+	}
 	gtk_tree_store_set(roster, &(sb->iter), COL_STATUS, icon, -1);
 	/* well, it's a bit ugly. TODO */
 	gtk_tree_view_expand_all(GTK_TREE_VIEW(view));
