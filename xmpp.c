@@ -216,7 +216,7 @@ xmpp_cleanup() {
 void
 xmpp_init(void) {
 	LmSSL *ssl;
-	config_parse_rcfile();
+	config_init();
 	connection = lm_connection_new(NULL);
 	/* TODO: Check if user actually wants ssl (config) */
 	if(!lm_ssl_is_supported()) {

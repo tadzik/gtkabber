@@ -5,6 +5,9 @@
 #include <glib/gprintf.h>
 #include <string.h>
 #include <stdlib.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 
 /* Here we are doing command parsing, either these typed at runtime,
  * or these supplied in a gtkabberrc file. This is also the home of
@@ -14,14 +17,17 @@
 /* functions */
 void config_cleanup(void);
 gint commands_exec(const char *);
-void config_parse_rcfile(void);
+void config_init(void);
 Option get_settings(Settings);
 static void init_settings(void);
 static gint set(const char *);
 static void set_status(const char *);
 /*************/
 
+/* vars */
+lua_State *lua;
 Option settings[NUM_SETTINGS];
+/********/
 
 void
 config_cleanup(void)
@@ -31,6 +37,7 @@ config_cleanup(void)
 	for(i=0; i != USE_SSL; i++) {
 		g_free(settings[i].s);
 	}
+	lua_close(lua);
 }
 
 int
@@ -47,38 +54,29 @@ commands_exec(const char *command)
 } /* commands_exec */
 
 void
-config_parse_rcfile(void) 
+config_init(void) 
 {
 	/* This one opens rc file, reads its contents and passes the lines
 	 * to commands_exec() */	
 	char *path;
-	gchar *contents;
-	gchar **lines;
-	GError *err = NULL;
 	init_settings();
-	path = g_strdup_printf("%s/.config/gtkabberrc", g_getenv("HOME"));
-	/* loading file contents */
-	if(!g_file_get_contents(path, &contents, NULL, &err)) {
-		ui_status_print("Error opening rc file: %s\n", err->message);
-		g_error_free(err);
-	} else {
-		/* splitting file to lines */
-		gint i;
-		lines = g_strsplit(contents, "\n", 0);
-		for(i=0; lines[i] != NULL; i++) {
-			/* skipping empty lines and comments */
-			if(lines[i][0] == '\0' || lines[i][0] == '#')
-				continue;
-			else {
-				gint status = commands_exec(lines[i]);
-				if(status == 1) ui_status_print("Line %d: parsing failed: "
-				                                "%s\n", i+1, lines[i]);
-				else if(status == 2) ui_status_print("Line %d: unknown command:"
-				                                     " '%s'\n", i+1, lines[i]);
-			}
-		}
-		g_strfreev(lines);
+	lua = lua_open();
+	luaL_openlibs(lua);
+	path = g_strdup_printf("%s/.config/gtkabber.lua", g_getenv("HOME"));
+	/* load the file and run it */
+	if(luaL_loadfile(lua, path) || lua_pcall(lua, 0, 0, 0)) {
+		ui_status_print("Couldn't parse the configuration file %s: %s",
+		                lua_tostring(lua, -1));
+		return;
 	}
+	lua_getglobal(lua, "server");
+	lua_getglobal(lua, "username");
+	lua_getglobal(lua, "passwd");
+	lua_getglobal(lua, "resource");
+	settings[SERVER].s = g_strdup(lua_tostring(lua, -4));
+	settings[USERNAME].s = g_strdup(lua_tostring(lua, -3));
+	settings[PASSWD].s = g_strdup(lua_tostring(lua, -2));
+	settings[RESOURCE].s = g_strdup(lua_tostring(lua, -1));
 	g_free(path);
 } /* config_parse_rcfile */
 

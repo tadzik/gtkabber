@@ -1,5 +1,5 @@
-INCS=$(shell pkg-config --cflags gtk+-2.0 loudmouth-1.0)
-LIBS=$(shell pkg-config --libs gtk+-2.0 loudmouth-1.0)
+INCS=$(shell pkg-config --cflags gtk+-2.0 loudmouth-1.0 lua)
+LIBS=$(shell pkg-config --libs gtk+-2.0 loudmouth-1.0 lua)
 WEXTRA=-Wclobbered -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized #Wextra without -Wunused-parameter
 PREFIX?=/usr/local
 INSTALLDIR?=$(DESTDIR)$(PREFIX)
