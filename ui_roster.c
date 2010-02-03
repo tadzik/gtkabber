@@ -43,6 +43,7 @@ static void row_clicked_cb(GtkTreeView *, GtkTreePath *,
                            GtkTreeViewColumn *, gpointer);
 void ui_roster_add(const gchar *, const gchar *, const gchar *);
 void ui_roster_cleanup(void);
+void ui_roster_offline(void);
 GtkWidget *ui_roster_setup(void);
 void ui_roster_toggle_offline(void);
 void ui_roster_update(const gchar *);
@@ -247,6 +248,17 @@ ui_roster_cleanup(void)
 		g_free(g);
 	}
 	g_slist_free(groups);
+}
+
+void
+ui_roster_offline(void)
+{
+	GSList *elem;
+	for(elem = entries; elem; elem = elem->next) {
+		UiBuddy *b = (UiBuddy *)elem->data;
+		gtk_tree_store_set(roster, &(b->iter), COL_STATUS, offline_icon, -1);
+	}
+
 }
 
 GtkWidget *

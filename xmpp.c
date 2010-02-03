@@ -12,9 +12,9 @@ static void connection_auth_cb(LmConnection *, gboolean, gpointer);
 static void connection_disconnect_cb(LmConnection *, LmDisconnectReason,
                                      gpointer);
 static void connection_open_cb(LmConnection *, gboolean, gpointer);
-void xmpp_cleanup();
-static void disconnect();
-static void connect();
+void xmpp_cleanup(void);
+static void disconnect(void);
+static void connect(void);
 void xmpp_init(void);
 LmHandlerResult xmpp_iq_handler(LmMessageHandler *, LmConnection *,
                                 LmMessage *, gpointer);
@@ -33,6 +33,7 @@ static char *xmpp_status_readable(XmppStatus);
 
 /* global variables */
 LmConnection *connection;
+static int initial_presence_sent = 0;
 /********************/
 
 static void
@@ -155,6 +156,9 @@ disconnect() {
 	if(lm_connection_is_open(connection)) {
 		ui_status_print("Closing connection to %s\n", conf_server);
 		lm_connection_close(connection, NULL);
+		initial_presence_sent = 0;
+		ui_roster_offline();
+		g_printerr("Disconnected\n");
 	}
 }
 
@@ -241,7 +245,10 @@ xmpp_iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		if(g_strcmp0(lm_message_node_get_attribute(query, "xmlns"),
 		             "jabber:iq:roster") == 0) {
 			xmpp_roster_parse_query(c, query);
-			xmpp_set_status(ui_get_status());
+			if(!initial_presence_sent) {
+				xmpp_set_status(ui_get_status());
+				initial_presence_sent = 1;
+			}
 		}
 	}
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
@@ -372,17 +379,18 @@ xmpp_set_status(XmppStatus s)
 	GError *err = NULL;
 	const char *status, *status_msg;
 	gchar *conf_priority = get_settings(PRIORITY).s;
-	if(!connection || (lm_connection_get_state(connection)
-                      != LM_CONNECTION_STATE_AUTHENTICATED)) {
-		ui_status_print("Cannot set status: Not authenticated. Reconnecting\n");
+	if(!connection
+	   || (lm_connection_get_state(connection)
+              != LM_CONNECTION_STATE_AUTHENTICATED)) {
+		ui_status_print("Cannot set status: connection not ready. Reconnecting\n");
 		connect();
 		return;
 	}
 	status_msg = ui_get_status_msg();
 	p = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
 	                                 (s == STATUS_OFFLINE)
-	                                 ? LM_MESSAGE_SUB_TYPE_UNAVAILABLE
-	                                 : LM_MESSAGE_SUB_TYPE_AVAILABLE);
+	                                 	? LM_MESSAGE_SUB_TYPE_UNAVAILABLE
+	                                 	: LM_MESSAGE_SUB_TYPE_AVAILABLE);
 	lm_message_node_add_child(p->node, "priority", conf_priority);
 	status = xmpp_status_to_str(s);
 	if(status) {
