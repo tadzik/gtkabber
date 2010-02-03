@@ -35,5 +35,6 @@ What is to be done
 
 Especially implementing the whole xmpp standard features (requesting/removing authorizations, handling them), some neat popular XEPs, push the lua scripting further, improve stability and the code organization. Any other ideas? Go on, share!
 
-Thanks for taking a look,
+Thanks for taking a look.
+
 Ted
