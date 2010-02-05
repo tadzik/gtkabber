@@ -20,6 +20,7 @@ static void cbox_changed_cb(GtkComboBox *, gpointer);
 static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
 static void free_all_tabs(void);
+static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
@@ -33,13 +34,15 @@ const gchar *ui_get_status_msg(void);
 void ui_setup(int *, char ***);
 void ui_set_status(XmppStatus);
 void ui_set_status_msg(const gchar *);
+void ui_show_presence_query(const gchar *);
 void ui_status_print(const gchar *msg, ...);
 void ui_tab_print_message(const gchar *, const gchar *);
 /*************/
 
 /* global variables */
 static Chattab *status_tab;
-static GtkWidget *nbook, *rview, *status_cbox, *status_entry, *window;
+static GtkWidget *infobox, *nbook, *rview, 
+                 *status_cbox, *status_entry, *window;
 static GSList *tabs;
 /********************/
 
@@ -59,8 +62,6 @@ append_to_tab(Chattab *t, const gchar *s)
 	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S]", localtime(&now));
 	str = g_strdup_printf("%s %s", tstamp, s);
 	gtk_text_buffer_insert(t->buffer, &i, str, strlen(str));
-	/* looks stupid? That's because old gcc is stupid */
-	g_printerr("%s", str);
 	g_free(str);
 	scroll_tab_down(t);
 } /* append_to_tab */
@@ -110,6 +111,17 @@ free_all_tabs(void)
 		g_slist_free(tabs);
 	}
 } /* free_all_tabs*/
+
+static void
+infobar_response_cb(GtkInfoBar *i, gint r, gpointer j)
+{
+	gchar *jid = (gchar *)j;
+	ui_status_print("Sending response to %s\n", jid);
+	xmpp_subscr_response(jid, (r == GTK_RESPONSE_YES)
+	                                 ? TRUE : FALSE);
+	gtk_container_remove(GTK_CONTAINER(infobox), GTK_WIDGET(i));
+	g_free(jid);
+}
 
 static gboolean
 keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
@@ -308,16 +320,18 @@ void
 ui_setup(int *argc, char **argv[])
 {
 	/* The first thing that occurs in the program, sets up the interface */
-	GtkWidget *hpaned, *leftbox, *rwin;
+	GtkWidget *hpaned, *leftbox, *rwin, *vbox;
 	gtk_init(argc, argv);
 	/* creating widgets */
 	hpaned = gtk_hpaned_new();
+	infobox = gtk_vbox_new(FALSE, 0);
 	leftbox = gtk_vbox_new(FALSE, 0);
 	nbook = gtk_notebook_new();
 	rview = ui_roster_setup();
 	rwin = gtk_scrolled_window_new(NULL, NULL);
 	status_cbox = gtk_combo_box_new_text();
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	vbox = gtk_vbox_new(FALSE, 0);
 	/* setting up the more exciting ones */
 	setup_cbox(status_cbox);
 	status_entry = gtk_entry_new();
@@ -333,7 +347,9 @@ ui_setup(int *argc, char **argv[])
 	ui_create_tab(NULL, "Status", 0);
 	/* packing */
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), rview);
-	gtk_container_add(GTK_CONTAINER(window), hpaned);
+	gtk_container_add(GTK_CONTAINER(window), vbox);
+	gtk_container_add(GTK_CONTAINER(vbox), hpaned);
+	gtk_container_add(GTK_CONTAINER(vbox), infobox);
 	gtk_paned_add1(GTK_PANED(hpaned), leftbox);
 	gtk_container_add(GTK_CONTAINER(leftbox), rwin);
 	gtk_container_add(GTK_CONTAINER(leftbox), status_cbox);
@@ -342,6 +358,10 @@ ui_setup(int *argc, char **argv[])
 	gtk_box_set_child_packing(GTK_BOX(leftbox), status_cbox,
 	                          FALSE, FALSE, 0, GTK_PACK_START);
 	gtk_box_set_child_packing(GTK_BOX(leftbox), status_entry,
+	                          FALSE, FALSE, 0, GTK_PACK_START);
+	gtk_box_set_child_packing(GTK_BOX(vbox), hpaned,
+	                          TRUE, TRUE, 0, GTK_PACK_START);
+	gtk_box_set_child_packing(GTK_BOX(vbox), infobox,
 	                          FALSE, FALSE, 0, GTK_PACK_START);
 	/* setting up signals */
 	g_signal_connect(G_OBJECT(window), "destroy",
@@ -368,6 +388,29 @@ ui_set_status_msg(const char *m)
 } /* ui_set_status_msg */
 
 void
+ui_show_presence_query(const gchar *j)
+{
+	GtkWidget *conarea, *ibar, *label;
+	gchar *msg, *jid;
+	ibar = gtk_info_bar_new_with_buttons(GTK_STOCK_YES, GTK_RESPONSE_YES,
+	                                     GTK_STOCK_NO, GTK_RESPONSE_NO,
+	                                     NULL);
+	msg = g_strdup_printf("Do you wish to accept presence\n"
+	                      "subscription request from %s?", j);
+	label = gtk_label_new(msg);
+	jid = g_strdup(j);
+	gtk_info_bar_set_message_type(GTK_INFO_BAR(ibar), GTK_MESSAGE_QUESTION);
+	conarea = gtk_info_bar_get_content_area(GTK_INFO_BAR(ibar));
+	gtk_container_add(GTK_CONTAINER(conarea), label);
+	gtk_container_add(GTK_CONTAINER(infobox), ibar);
+	g_signal_connect(G_OBJECT(ibar), "response",
+	                 G_CALLBACK(infobar_response_cb), (gpointer)jid);
+	gtk_widget_show_all(ibar);
+	set_wm_urgency();
+	g_free(msg);
+} /* ui_show_presence_query */
+
+void
 ui_status_print(const char *msg, ...)
 {
 	/* Our printf() substitute, almost everything
@@ -377,6 +420,8 @@ ui_status_print(const char *msg, ...)
 	va_start(ap, msg);
 	str = g_strdup_vprintf(msg, ap);
 	append_to_tab(status_tab, str);
+	/* looks stupid? That's because old gcc is stupid */
+	g_printerr("%s", str);
 	va_end(ap);
 	g_free(str);
 } /* ui_status_print */
@@ -405,12 +450,11 @@ ui_tab_print_message(const char *jid, const char *msg)
 		shortjid = (slash) ? g_strndup(jid, slash-jid) : g_strdup(jid);
 		sb = xmpp_roster_find_by_jid(shortjid);
 		if(!sb) {
-			/* Something, somewhere went horribly wrong */
-			g_printerr("ui_tab_print_message: Buddy %s not found.\n", shortjid);
-			g_free(shortjid);
-			return;
+			tab = ui_create_tab(jid, jid, 0);
+		} else {
+			tab = ui_create_tab(jid, sb->name, 0);
 		}
-		tab = ui_create_tab(jid, sb->name, 0);
+		g_free(shortjid);
 	}
 	/* actual message printing - two lines of this whole function! */
 	str = g_strdup_printf("<== %s\n", msg);

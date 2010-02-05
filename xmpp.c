@@ -8,13 +8,16 @@
 #include "types.h"
 
 /* functions */
+static void connect(void);
 static void connection_auth_cb(LmConnection *, gboolean, gpointer);
 static void connection_disconnect_cb(LmConnection *, LmDisconnectReason,
                                      gpointer);
 static void connection_open_cb(LmConnection *, gboolean, gpointer);
-void xmpp_cleanup(void);
 static void disconnect(void);
-static void connect(void);
+static void parse_status_presence(LmMessage *);
+static void parse_subscr_presence(LmMessage *);
+static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
+void xmpp_cleanup(void);
 void xmpp_init(void);
 LmHandlerResult xmpp_iq_handler(LmMessageHandler *, LmConnection *,
                                 LmMessage *, gpointer);
@@ -24,7 +27,8 @@ LmHandlerResult xmpp_pres_handler(LmMessageHandler *, LmConnection *,
                                   LmMessage *, gpointer);
 void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
-static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
+void xmpp_subscribe(gchar *);
+void xmpp_subscr_response(gchar *, gint);
 static char *xmpp_status_to_str(XmppStatus);
 static char *xmpp_status_readable(XmppStatus);
 void xmpp_roster_parsed_cb(void);
@@ -161,6 +165,100 @@ disconnect() {
 	}
 }
 
+static void
+parse_status_presence(LmMessage *m)
+{
+	const char *buf;
+	char *jid, *resname, *sep;
+	Buddy *sb;
+	Resource *res;
+	LmMessageNode *child;
+	g_printerr("Parsing presence\n");
+	buf = lm_message_node_get_attribute(m->node, "from");
+	sep = strchr(buf, '/');
+	g_printerr("%d...", __LINE__);
+	if(sep) {
+		jid = g_strndup(buf, sep-buf);
+		resname = g_strdup(sep+1);
+	} else {
+		jid = g_strdup(buf);
+		resname = g_strdup("default");
+	}
+	g_printerr("%d...", __LINE__);
+	sb = xmpp_roster_find_by_jid(jid);
+	if(!sb) {
+		g_free(jid);
+		g_free(resname);
+		return;
+	}
+	g_printerr("%d...", __LINE__);
+	res = xmpp_roster_find_res_by_name(sb, resname);
+	if(!res) {
+		/* we have to create a new resource */	
+		res = g_malloc(sizeof(Resource));
+		res->name = (char *)resname;
+		res->status_msg = NULL;
+		xmpp_roster_add_resource(sb, res);
+	}
+	/* checking presence type (if available) */
+	g_printerr("%d...", __LINE__);
+	if((buf = lm_message_node_get_attribute(m->node, "type"))) {
+		if(g_strcmp0(buf, "unavailable") == 0)
+			res->status = STATUS_OFFLINE;
+	} else {
+		res->status = STATUS_ONLINE;	
+	}
+	/* checking for some specific status */
+	g_printerr("%d...", __LINE__);
+	if((child = lm_message_node_get_child(m->node, "show"))) {
+		buf = lm_message_node_get_value(child);
+		if(!g_strcmp0(buf, "away")) res->status = STATUS_AWAY;
+		else if(!g_strcmp0(buf, "chat")) res->status = STATUS_FFC;
+		else if(!g_strcmp0(buf, "xa")) res->status = STATUS_XA;
+		else if(!g_strcmp0(buf, "dnd")) res->status = STATUS_DND;
+		else {
+			ui_status_print("Invalid <show> in presence from %s (%s), ignoring\n",
+			                jid, buf);
+		}
+	}
+	/* checking if resource has some previous status message.
+	 * If it does, purge it */
+	g_printerr("%d...", __LINE__);
+	if(res->status_msg) {
+		g_free(res->status_msg);
+		res->status_msg = NULL;
+	}
+	/* checking for status message */
+	g_printerr("%d...", __LINE__);
+	child = lm_message_node_get_child(m->node, "status");
+	if (child && (buf = lm_message_node_get_value(child)))
+		res->status_msg = g_strdup(buf);
+	/* checking priority (if provided) */
+	g_printerr("%d...", __LINE__);
+	child = lm_message_node_get_child(m->node, "priority");
+	if(child && (buf = lm_message_node_get_value(child)))
+		res->priority = atoi(buf);
+	else
+		res->priority = 0;
+	/* printing a message to status window and updating roster entry in ui */
+	ui_status_print("%s/%s is now %s (%s)\n", sb->name, resname,
+	                xmpp_status_readable(res->status),
+	                (res->status_msg) ? res->status_msg : "");
+	ui_roster_update(sb->jid);
+	g_printerr("Done\n");
+}
+
+static void
+parse_subscr_presence(LmMessage *m)
+{
+	const char *type, *jid;
+	ui_status_print("Hurr, something with subscribe\n");
+	type = lm_message_node_get_attribute(m->node, "type");
+	jid = lm_message_node_get_attribute(m->node, "from");
+	if(!type || (g_strcmp0(type, "subscribe") == 0))
+		ui_show_presence_query(jid);
+}
+
 static LmSSLResponse
 ssl_cb(LmSSL *ssl, LmSSLStatus st, gpointer u)
 {
@@ -269,86 +367,11 @@ LmHandlerResult
 xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
                   gpointer udata)
 {
-	const char *buf;
-	char *jid, *resname, *sep;
-	Buddy *sb;
-	Resource *res;
-	LmMessageNode *child;
-	g_printerr("Parsing presence\n");
-	buf = lm_message_node_get_attribute(m->node, "from");
-	sep = strchr(buf, '/');
-	g_printerr("%d...", __LINE__);
-	if(sep) {
-		jid = g_strndup(buf, sep-buf);
-		resname = g_strdup(sep+1);
-	} else {
-		jid = g_strdup(buf);
-		resname = g_strdup("default");
-	}
-	g_printerr("%d...", __LINE__);
-	sb = xmpp_roster_find_by_jid(jid);
-	if(!sb) {
-		g_free(jid);
-		g_free(resname);
-		return LM_HANDLER_RESULT_REMOVE_MESSAGE;
-	}
-	g_printerr("%d...", __LINE__);
-	res = xmpp_roster_find_res_by_name(sb, resname);
-	if(!res) {
-		/* we have to create a new resource */	
-		res = g_malloc(sizeof(Resource));
-		res->name = (char *)resname;
-		res->status_msg = NULL;
-		xmpp_roster_add_resource(sb, res);
-	}
-	/* checking presence type (if available) */
-	g_printerr("%d...", __LINE__);
-	if((buf = lm_message_node_get_attribute(m->node, "type"))) {
-		if(g_strcmp0(buf, "unavailable") == 0) {
-			res->status = STATUS_OFFLINE;
-		} else {
-			/* other presence types are not yet implemented */
-			return LM_HANDLER_RESULT_REMOVE_MESSAGE;
-		}
-	} else {
-		res->status = STATUS_ONLINE;	
-	}
-	/* checking for some specific status */
-	g_printerr("%d...", __LINE__);
-	if((child = lm_message_node_get_child(m->node, "show"))) {
-		buf = lm_message_node_get_value(child);
-		if(!g_strcmp0(buf, "away")) res->status = STATUS_AWAY;
-		else if(!g_strcmp0(buf, "chat")) res->status = STATUS_FFC;
-		else if(!g_strcmp0(buf, "xa")) res->status = STATUS_XA;
-		else if(!g_strcmp0(buf, "dnd")) res->status = STATUS_DND;
-		/* any other <show> is forbidden in xmpp,
-		 * so we're not gonna care about it anyway */
-	}
-	/* checking if resource has some previous status message.
-	 * If it does, purge it */
-	g_printerr("%d...", __LINE__);
-	if(res->status_msg) {
-		g_free(res->status_msg);
-		res->status_msg = NULL;
-	}
-	/* checking for status message */
-	g_printerr("%d...", __LINE__);
-	child = lm_message_node_get_child(m->node, "status");
-	if (child && (buf = lm_message_node_get_value(child)))
-		res->status_msg = g_strdup(buf);
-	/* checking priority (if provided) */
-	g_printerr("%d...", __LINE__);
-	child = lm_message_node_get_child(m->node, "priority");
-	if(child && (buf = lm_message_node_get_value(child)))
-		res->priority = atoi(buf);
-	else
-		res->priority = 0;
-	/* printing a message to status window and updating roster entry in ui */
-	ui_status_print("%s/%s is now %s (%s)\n", sb->name, resname,
-	                xmpp_status_readable(res->status),
-	                (res->status_msg) ? res->status_msg : "");
-	ui_roster_update(sb->jid);
-	g_printerr("Done\n");
+	const char *buf = lm_message_node_get_attribute(m->node, "type");
+	if(!buf || (g_strcmp0(buf, "unavailable") == 0))
+		parse_status_presence(m);
+	else if(strstr(buf, "subscribe") != NULL)
+		parse_subscr_presence(m);
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 } /* xmpp_pres_handler */
 
@@ -409,6 +432,46 @@ xmpp_status_to_str(XmppStatus status)
 	else if(status == STATUS_DND) return "dnd";
 	else return NULL;
 } /* xmpp_status_to_str */
+
+void xmpp_subscribe(gchar *j) {
+	LmMessage *msg;
+	LmMessageNode *query, *item;
+	GError *err = NULL;
+	msg = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_IQ,
+	                                   LM_MESSAGE_SUB_TYPE_SET);
+	query = lm_message_node_add_child(msg->node, "query", NULL);
+	lm_message_node_set_attribute(query, "xmlns", "jabber:iq:roster");
+	item = lm_message_node_add_child(query, "item", NULL);
+	lm_message_node_set_attribute(item, "jid", j);
+	if(!lm_connection_send(connection, msg, &err)) {
+		ui_status_print("Error adding buddy to roster: %s\n", err->message);
+		g_error_free(err);
+	}
+	lm_message_unref(msg);
+	/* sending subscription request */	
+	msg = lm_message_new_with_sub_type(j, LM_MESSAGE_TYPE_PRESENCE,
+	                                   LM_MESSAGE_SUB_TYPE_SUBSCRIBE);
+	if(!lm_connection_send(connection, msg, &err)) {
+		ui_status_print("Error requesting subscription: %s\n", err->message);
+		g_error_free(err);
+	}
+	lm_message_unref(msg);
+}
+
+void
+xmpp_subscr_response(gchar *j, gint s)
+{
+	LmMessage *msg;
+	GError *err = NULL;
+	msg = lm_message_new_with_sub_type(j, LM_MESSAGE_TYPE_PRESENCE,
+	                                   (s) ? LM_MESSAGE_SUB_TYPE_SUBSCRIBED
+					       : LM_MESSAGE_SUB_TYPE_UNSUBSCRIBED);
+	if(!lm_connection_send(connection, msg, &err)) {
+		ui_status_print("Error sending subscription response: %s\n", err->message);
+		g_error_free(err);
+	}
+	lm_message_unref(msg);
+}
 
 static char *
 xmpp_status_readable(XmppStatus st)

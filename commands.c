@@ -1,4 +1,5 @@
 #include "types.h"
+#include "xmpp.h"
 #include "ui.h"
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -46,6 +47,10 @@ commands_exec(const char *command)
 	if(g_str_has_prefix(command, "set ")) {
 		/*the only case so far: setting variables*/
 		if(set(&command[4])) return 1;
+	} else if(g_str_has_prefix(command, "subscribe ")) {
+		gchar *jid = g_strdup((&command[10]));
+		xmpp_subscribe(jid);
+		g_free(jid);
 	} else {
 		/*unkown command*/
 		return 2;

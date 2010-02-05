@@ -124,8 +124,6 @@ load_icon(const gchar *status)
 static void
 load_iconset()
 {
-	/* Loading the iconset. It's called only once,
-	 * maybe it should be inline or something? TODO */
 	online_icon = load_icon("online");
 	offline_icon = load_icon("offline");
 	ffc_icon = load_icon("ffc");
@@ -186,9 +184,10 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 	 * Memory allocated here is freed by ui_roster_clenaup,
 	 * called by destroy() signal handler in ui.c */
 	UiBuddy *newguy;
+	GtkTreeIter *iter = NULL;
+#if 0
 	UiGroup *group;
 	GSList *elem;
-	GtkTreeIter *iter = NULL;
 	/* checking if our buddy belongs to some group */
 	if(g) {
 		/* looking for his group */
@@ -210,6 +209,7 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 		}
 		iter = &group->iter;
 	}
+#endif
 	gtk_tree_store_append(roster, &main_iter, iter);
 	gtk_tree_store_set(roster, &main_iter, COL_STATUS, offline_icon,
 	                   COL_NAME, n, -1);
