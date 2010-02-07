@@ -101,7 +101,8 @@ destroy(GtkWidget *widget, gpointer data)
 static void
 focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 {
-	gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
+	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
+		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 } /* focus_cb */
 
 static void
