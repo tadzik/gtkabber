@@ -11,7 +11,7 @@ The example.config file includes all the information needed
 Dependencies
 ------------
 
-Gtkabber depends on GTK+, Loudmouth and Lua.
+Gtkabber depends on GTK+ (2.18 or newer), Loudmouth and Lua.
 
 Usage
 -----
