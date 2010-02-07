@@ -24,8 +24,6 @@ static int getint(const gchar *);
 static gchar *getstr(const gchar *);
 Option get_settings(Settings);
 static void init_settings(void);
-static gint set(const char *);
-static void set_status(const char *);
 /*************/
 
 /* vars */
@@ -47,10 +45,7 @@ config_cleanup(void)
 int
 commands_exec(const char *command)
 {
-	if(g_str_has_prefix(command, "set ")) {
-		/*the only case so far: setting variables*/
-		if(set(&command[4])) return 1;
-	} else if(g_str_has_prefix(command, "subscribe ")) {
+	if(g_str_has_prefix(command, "subscribe ")) {
 		gchar *jid = g_strdup((&command[10]));
 		xmpp_subscribe(jid);
 		g_free(jid);
@@ -86,6 +81,7 @@ config_init(void)
 	settings[USE_TLS].i = getbool("use_tls");
 	settings[CASESENSORT].i = getbool("case_sensitive_sorting");
 	settings[PORT].i = getint("port");
+	settings[PRIORITY].i = getint("priority");
 	/* extracting username from jid */
 	if(settings[JID].s) {
 		atpos = strchr(settings[JID].s, '@');
@@ -145,57 +141,3 @@ init_settings(void)
 		settings[i].i = 0;
 	}
 } /* init_settings */
-
-static int 
-set(const char *params)
-{
-	/* This endless chain of else-ifs looks for a var to set/func to use
-	 * and does what it should */
-	gchar *arg;
-	arg = strchr(params, ' ');
-	/* if not found, exiting. If found, incrementing */
-	if(!arg++)
-		return 2;
-	/*
-	 * line: set server jabber.org
-	 *           ^      ^      
-	 *         params  arg
-	 */
-	if(strstr(params, "server") == params) {
-		g_free(settings[SERVER].s);
-		settings[SERVER].s = g_strdup(arg);
-	} else if(strstr(params, "username") == params) {
-		g_free(settings[USERNAME].s);
-		settings[USERNAME].s = g_strdup(arg);
-	} else if(strstr(params, "passwd") == params) {
-		g_free(settings[PASSWD].s);
-		settings[PASSWD].s = g_strdup(arg);
-	} else if(strstr(params, "resource") == params) {
-		g_free(settings[RESOURCE].s);
-		settings[RESOURCE].s = g_strdup(arg);
-	} else if(strstr(params, "priority") == params) {
-		g_free(settings[PRIORITY].s);
-		settings[PRIORITY].s = g_strdup(arg);
-	} else if(strstr(params, "port") == params) {
-		settings[PORT].i = atoi(arg);
-	} else if(strstr(params, "status ") == params) {
-		set_status(arg);
-	} else if(strstr(params, "status_msg") == params) {
-		ui_set_status_msg(arg);
-	} else return 1;
-	return 0;
-	/* return values:
-	 * 1: unknown command
-	 * 2: not enough parameters */
-} /* set */
-
-static void
-set_status(const char *s)
-{
-	if(g_strcmp0(s, "online") == 0) ui_set_status(STATUS_ONLINE);
-	else if(g_strcmp0(s, "away") == 0) ui_set_status(STATUS_AWAY);
-	else if(g_strcmp0(s, "xa") == 0) ui_set_status(STATUS_XA);
-	else if(g_strcmp0(s, "ffc") == 0) ui_set_status(STATUS_FFC);
-	else if(g_strcmp0(s, "dnd") == 0) ui_set_status(STATUS_DND);
-	else if(g_strcmp0(s, "offline") == 0) ui_set_status(STATUS_OFFLINE);
-} /* set_status */

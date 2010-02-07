@@ -396,18 +396,20 @@ xmpp_set_status(XmppStatus s)
 	LmMessage *p;
 	GError *err = NULL;
 	const char *status, *status_msg;
-	gchar *conf_priority = get_settings(PRIORITY).s;
+	gchar *conf_priority;
 	if(!connection || !lm_connection_is_open(connection)) {
 		ui_status_print("Not connected, connecting\n");
 		connect();
 		return;
 	}
+	conf_priority = g_strdup_printf("%d\n", get_settings(PRIORITY).i);
 	status_msg = ui_get_status_msg();
 	p = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
 	                                 (s == STATUS_OFFLINE)
 	                                 	? LM_MESSAGE_SUB_TYPE_UNAVAILABLE
 	                                 	: LM_MESSAGE_SUB_TYPE_AVAILABLE);
 	lm_message_node_add_child(p->node, "priority", conf_priority);
+	g_free(conf_priority);
 	status = xmpp_status_to_str(s);
 	if(status) {
 		lm_message_node_add_child(p->node, "show", status);

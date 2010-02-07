@@ -25,11 +25,11 @@ typedef enum {
 	USERNAME,
 	PASSWD,
 	RESOURCE,
-	PRIORITY,
 	/* integers */
 	USE_SSL,
 	USE_TLS,
 	PORT,
+	PRIORITY,
 	CASESENSORT,
 	/**********/
 	NUM_SETTINGS

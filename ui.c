@@ -19,6 +19,7 @@ static void append_to_tab(Chattab *, const gchar *);
 static void cbox_changed_cb(GtkComboBox *, gpointer);
 static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
+static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
 static void free_all_tabs(void);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
@@ -96,6 +97,12 @@ destroy(GtkWidget *widget, gpointer data)
 	gtk_main_quit();
 	free_all_tabs();
 } /* destroy */
+
+static void
+focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
+{
+	gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
+} /* focus_cb */
 
 static void
 free_all_tabs(void)
@@ -373,6 +380,8 @@ ui_setup(int *argc, char **argv[])
 	                 G_CALLBACK(xmpp_set_status), NULL);
 	g_signal_connect(G_OBJECT(window), "key-press-event",
 	                 G_CALLBACK(keypress_cb), NULL);
+	g_signal_connect(G_OBJECT(window), "focus-in-event",
+	                 G_CALLBACK(focus_cb), NULL);
 	/*go go go!*/
 	gtk_widget_show_all(window);
 } /* ui_setup */
