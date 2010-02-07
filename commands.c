@@ -19,6 +19,9 @@
 void config_cleanup(void);
 gint commands_exec(const char *);
 void config_init(void);
+static int getbool(const gchar *);
+static int getint(const gchar *);
+static gchar *getstr(const gchar *);
 Option get_settings(Settings);
 static void init_settings(void);
 static gint set(const char *);
@@ -74,38 +77,15 @@ config_init(void)
 		                lua_tostring(lua, -1));
 		return;
 	}
-	/* TODO: It looks like a... nevermind, think about it */
-	lua_getglobal(lua, "server");
-	settings[SERVER].s = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
 
-	lua_getglobal(lua, "jid");
-	settings[JID].s = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
-	
-	lua_getglobal(lua, "passwd");
-	settings[PASSWD].s = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
-
-	lua_getglobal(lua, "resource");
-	settings[RESOURCE].s = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
-
-	lua_getglobal(lua, "use_ssl");
-	settings[USE_SSL].i = lua_toboolean(lua, 1);
-	lua_remove(lua, 1);
-
-	lua_getglobal(lua, "use_tls");
-	settings[USE_TLS].i = lua_toboolean(lua, 1);
-	lua_remove(lua, 1);
-
-	lua_getglobal(lua, "case_sensitive_sorting");
-	settings[CASESENSORT].i = lua_toboolean(lua, 1);
-	lua_remove(lua, 1);
-
-	lua_getglobal(lua, "port");
-	settings[PORT].i = (int)lua_tonumber(lua, 1);
-	lua_remove(lua, 1);
+	settings[SERVER].s = getstr("server");
+	settings[JID].s = getstr("jid");
+	settings[PASSWD].s = getstr("passwd");
+	settings[RESOURCE].s = getstr("resource");
+	settings[USE_SSL].i = getbool("use_ssl");
+	settings[USE_TLS].i = getbool("use_tls");
+	settings[CASESENSORT].i = getbool("case_sensitive_sorting");
+	settings[PORT].i = getint("port");
 	/* extracting username from jid */
 	if(settings[JID].s) {
 		atpos = strchr(settings[JID].s, '@');
@@ -113,15 +93,44 @@ config_init(void)
 			settings[USERNAME].s = g_strndup(settings[JID].s,
 	                                                 atpos - settings[JID].s);
 	}
-	g_printerr("Sorting option: %d\n", settings[CASESENSORT].i);
 	g_free(path);
 } /* config_parse_rcfile */
+
+static int
+getbool(const gchar *o)
+{
+	int ret;
+	lua_getglobal(lua, o);
+	ret = lua_toboolean(lua, 1);
+	lua_remove(lua, 1);
+	return ret;
+} /* getbool */
+
+static int
+getint(const gchar *o)
+{
+	int ret;
+	lua_getglobal(lua, o);
+	ret = (int)lua_tonumber(lua, 1);
+	lua_remove(lua, 1);
+	return ret;
+} /* getint */
+
+static gchar *
+getstr(const gchar *o)
+{
+	gchar *ret;
+	lua_getglobal(lua, o);
+	ret = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+	return ret;
+} /* getstr */
 
 Option
 get_settings(Settings s)
 {
 	return settings[s];
-}
+} /* get_settings */
 
 static void
 init_settings(void)
