@@ -30,6 +30,7 @@ typedef enum {
 	USE_SSL,
 	USE_TLS,
 	PORT,
+	CASESENSORT,
 	/**********/
 	NUM_SETTINGS
 } Settings;
@@ -90,6 +91,7 @@ typedef struct {
 	gchar *jid;
 	gchar *title;
 	GtkTextBuffer *buffer;
+	GtkWidget *entry;
 	GtkWidget *label;
 	GtkWidget *scrolled;
 	GtkWidget *vbox;

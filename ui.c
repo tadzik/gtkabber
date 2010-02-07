@@ -22,7 +22,7 @@ static void destroy(GtkWidget *, gpointer);
 static void free_all_tabs(void);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
-static void reset_tab_title(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
+static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
@@ -154,15 +154,17 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 } /* keypress_cb */
 
 static void
-reset_tab_title(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
+tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 {	
 	GtkWidget *child;
 	Chattab *tab;
 	child = gtk_notebook_get_nth_page(b, n);
 	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
-	if(tab) /* just in case */
+	if(tab) { /* just in case */
 		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
-} /* reset_tab_title */
+		gtk_widget_grab_focus(tab->entry);
+	}
+} /* tab_switch_cb */
 
 static void
 scroll_tab_down(Chattab *tab)
@@ -204,6 +206,7 @@ tab_entry_handler(GtkWidget *e, gpointer p)
 	 * we are in status tab, or chat tab */
 	Chattab *tab = (Chattab *)p;
 	const gchar *input = gtk_entry_get_text(GTK_ENTRY(e));
+	if(!input[0]) return;
 	if(tab->jid) {
 		gchar *str;
 		xmpp_send_message(tab->jid, input);
@@ -241,7 +244,7 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	 * in the roster (ui_roster.c), or when the new message arrives (xmpp.c,
 	 * xmpp_message_handler), if supplied jid is NULL, we're creating
 	 * a status_tab */
-	GtkWidget *tview, *entry;
+	GtkWidget *tview;
 	Chattab *tab;
 	tab = g_malloc(sizeof(Chattab));
 	if(jid == NULL)
@@ -265,10 +268,10 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
 	                                      tview);
 	/* setting up the entry field */
-	entry = gtk_entry_new();
+	tab->entry = gtk_entry_new();
 	/* Sending messages/running commands, depending on a tab type.
 	 * Handler decides, it's universal  */
-	g_signal_connect(G_OBJECT(entry), "activate",
+	g_signal_connect(G_OBJECT(tab->entry), "activate",
 	                 G_CALLBACK(tab_entry_handler), (void *)tab);
 	/* some vbox to put it together */
 	tab->vbox = gtk_vbox_new(FALSE, 0);
@@ -276,8 +279,8 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	g_object_set_data(G_OBJECT(tab->vbox), "chattab-data", tab);
 	/* now let's put it all together */
 	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->scrolled);
-	gtk_container_add(GTK_CONTAINER(tab->vbox), entry);
-	gtk_box_set_child_packing(GTK_BOX(tab->vbox), entry, FALSE,
+	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->entry);
+	gtk_box_set_child_packing(GTK_BOX(tab->vbox), tab->entry, FALSE,
 	                          FALSE, 0, GTK_PACK_START);
 	gtk_widget_show_all(tab->vbox);
 	/* aaand, launch! */
@@ -287,7 +290,7 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook),
 	       	                              gtk_notebook_page_num(GTK_NOTEBOOK(nbook),
 	                                                            tab->vbox));
-		gtk_widget_grab_focus(entry);
+		gtk_widget_grab_focus(tab->entry);
 	}
 	return tab;
 } /* ui_create_tab */
@@ -338,7 +341,7 @@ ui_setup(int *argc, char **argv[])
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(nbook), TRUE);
 	/* signal for reseting (unbolding) tab titles when switched to 'em */
 	g_signal_connect(G_OBJECT(nbook), "switch-page",
-					G_CALLBACK(reset_tab_title), NULL);
+					G_CALLBACK(tab_switch_cb), NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);

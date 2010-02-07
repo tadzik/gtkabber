@@ -74,16 +74,37 @@ config_init(void)
 		                lua_tostring(lua, -1));
 		return;
 	}
+	/* TODO: It looks like a... nevermind, think about it */
 	lua_getglobal(lua, "server");
-	lua_getglobal(lua, "jid");
-	lua_getglobal(lua, "passwd");
-	lua_getglobal(lua, "resource");
-	lua_getglobal(lua, "use_ssl");
-	lua_getglobal(lua, "use_tls");
-	lua_getglobal(lua, "port");
 	settings[SERVER].s = g_strdup(lua_tostring(lua, 1));
 	lua_remove(lua, 1);
+
+	lua_getglobal(lua, "jid");
 	settings[JID].s = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+	
+	lua_getglobal(lua, "passwd");
+	settings[PASSWD].s = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+
+	lua_getglobal(lua, "resource");
+	settings[RESOURCE].s = g_strdup(lua_tostring(lua, 1));
+	lua_remove(lua, 1);
+
+	lua_getglobal(lua, "use_ssl");
+	settings[USE_SSL].i = lua_toboolean(lua, 1);
+	lua_remove(lua, 1);
+
+	lua_getglobal(lua, "use_tls");
+	settings[USE_TLS].i = lua_toboolean(lua, 1);
+	lua_remove(lua, 1);
+
+	lua_getglobal(lua, "case_sensitive_sorting");
+	settings[CASESENSORT].i = lua_toboolean(lua, 1);
+	lua_remove(lua, 1);
+
+	lua_getglobal(lua, "port");
+	settings[PORT].i = (int)lua_tonumber(lua, 1);
 	lua_remove(lua, 1);
 	/* extracting username from jid */
 	if(settings[JID].s) {
@@ -92,16 +113,7 @@ config_init(void)
 			settings[USERNAME].s = g_strndup(settings[JID].s,
 	                                                 atpos - settings[JID].s);
 	}
-	settings[PASSWD].s = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
-	settings[RESOURCE].s = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
-	settings[USE_SSL].i = lua_toboolean(lua, 1);
-	lua_remove(lua, 1);
-	settings[USE_TLS].i = lua_toboolean(lua, 1);
-	lua_remove(lua, 1);
-	settings[PORT].i = (int)lua_tonumber(lua, 1);
-	lua_remove(lua, 1);
+	g_printerr("Sorting option: %d\n", settings[CASESENSORT].i);
 	g_free(path);
 } /* config_parse_rcfile */
 

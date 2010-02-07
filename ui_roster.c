@@ -1,9 +1,10 @@
 #include <gtk/gtk.h>
 #include <stdlib.h>
 #include <string.h>
+#include "commands.h"
+#include "types.h"
 #include "ui.h"
 #include "xmpp_roster.h"
-#include "types.h"
 
 /* Here goes everything related to roster widget in the user interface
  * It's alredy complicated enough to keep it in the separate file */
@@ -82,7 +83,10 @@ compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
 		gint ret;
 		gtk_tree_model_get(m, a, COL_NAME, &n1, -1);
 		gtk_tree_model_get(m, b, COL_NAME, &n2, -1);
-		ret = g_strcmp0(n1, n2);
+		if(get_settings(CASESENSORT).i)
+			ret = g_strcmp0(n1, n2);
+		else
+			ret = g_utf8_collate(n1, n2);
 		g_free(n1);
 		g_free(n2);
 		return ret;
