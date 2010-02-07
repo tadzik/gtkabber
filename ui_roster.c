@@ -16,7 +16,7 @@ enum {
 };
 
 /* vars */
-static GtkTreeIter main_iter;
+static GtkTreeIter toplevel, children;
 static GtkTreeModel *filter;
 static GtkTreeSelection *selection;
 static GtkTreeStore *roster;
@@ -188,8 +188,7 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 	 * Memory allocated here is freed by ui_roster_clenaup,
 	 * called by destroy() signal handler in ui.c */
 	UiBuddy *newguy;
-	GtkTreeIter *iter = NULL;
-#if 0
+	GtkTreeIter *iter, *parent;
 	UiGroup *group;
 	GSList *elem;
 	/* checking if our buddy belongs to some group */
@@ -206,21 +205,24 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 			/* we'll have to create one */
 			group = g_malloc(sizeof(UiGroup));
 			group->name = g_strdup(g);
-			gtk_tree_store_append(roster, &main_iter, NULL);
-			gtk_tree_store_set(roster, &main_iter, COL_NAME, g, -1);
-			group->iter = main_iter;
+			gtk_tree_store_append(roster, &toplevel, NULL);
+			gtk_tree_store_set(roster, &toplevel, COL_NAME, g, -1);
+			group->iter = toplevel;
 			groups = g_slist_prepend(groups, group);
 		}
-		iter = &group->iter;
+		iter = &children;
+		parent = &group->iter;
+	} else {
+		iter = &toplevel;
+		parent = NULL;
 	}
-#endif
-	gtk_tree_store_append(roster, &main_iter, iter);
-	gtk_tree_store_set(roster, &main_iter, COL_STATUS, offline_icon,
+	gtk_tree_store_append(roster, iter, parent);
+	gtk_tree_store_set(roster, iter, COL_STATUS, offline_icon,
 	                   COL_NAME, n, -1);
 	newguy = g_malloc(sizeof(UiBuddy));
 	newguy->jid = j;
 	newguy->name = n;
-	newguy->iter = main_iter;
+	newguy->iter = *iter;
 	entries = g_slist_prepend(entries, newguy);
 } /* ui_roster_add */
 
