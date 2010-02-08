@@ -73,15 +73,31 @@ config_init(void)
 		return;
 	}
 
+	/* strings */
 	settings[SERVER].s = getstr("server");
 	settings[JID].s = getstr("jid");
 	settings[PASSWD].s = getstr("passwd");
-	settings[RESOURCE].s = getstr("resource");
-	settings[USE_SSL].i = getbool("use_ssl");
-	settings[USE_TLS].i = getbool("use_tls");
-	settings[CASESENSORT].i = getbool("case_sensitive_sorting");
-	settings[PORT].i = getint("port");
-	settings[PRIORITY].i = getint("priority");
+	if((settings[RESOURCE].s = getstr("resource")) == NULL)
+		settings[RESOURCE].s = g_strdup("gtkabber");
+
+	if((settings[USE_TLS].i = getbool("use_tls")) == -1)
+		settings[USE_TLS].i = 0;
+
+	if((settings[USE_SSL].i = getbool("use_ssl")) == -1)
+		settings[USE_SSL].i = !settings[USE_TLS].i;
+
+	if((settings[CASESENSORT].i = getbool("case_sensitive_sorting")) == -1)
+		settings[CASESENSORT].i = 0;
+
+	if((settings[PORT].i = getint("port")) == -1)
+		/* so xmpp_connect will set the default port */
+		settings[PORT].i = 0;	
+
+	if((settings[PRIORITY].i = getint("priority")) == -1)
+		/* high default priority, since it's unstable
+		 * a lot of testing is needed :> */
+		settings[PRIORITY].i = 10;
+
 	/* extracting username from jid */
 	if(settings[JID].s) {
 		atpos = strchr(settings[JID].s, '@');
@@ -95,9 +111,13 @@ config_init(void)
 static int
 getbool(const gchar *o)
 {
+	/* getbool returns -1 is the option is not set */
 	int ret;
 	lua_getglobal(lua, o);
-	ret = lua_toboolean(lua, 1);
+	if(!lua_isboolean(lua, 1))
+		ret = -1;
+	else
+		ret = lua_toboolean(lua, 1);
 	lua_remove(lua, 1);
 	return ret;
 } /* getbool */
