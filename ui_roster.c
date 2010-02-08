@@ -61,7 +61,9 @@ get_pixbuf_priority(GdkPixbuf *p)
 	if(p == away_icon) return 2;
 	if(p == xa_icon) return 3;
 	if(p == dnd_icon) return 4;
-	else return 5;
+	if(p == offline_icon) return 5;
+	/* groups will get lower than absent guys, when using "show offline" view */
+	else return 6;
 } /* get_pixbuf_priority */
 
 static gint
