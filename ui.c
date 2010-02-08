@@ -23,12 +23,12 @@ static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
 static void free_all_tabs(void);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
-static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
 static void tab_entry_handler(GtkWidget *, gpointer);
 static void tab_notify(Chattab *);
+static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 Chattab *ui_create_tab(const gchar *, const gchar *, gint);
 XmppStatus ui_get_status(void);
 const gchar *ui_get_status_msg(void);
@@ -185,13 +185,13 @@ scroll_tab_down(Chattab *tab)
 static void
 setup_cbox(GtkWidget *cbox)
 {
-	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Online");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Free for chat");
+	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Online");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Away");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Not available");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Do not disturb");
 	gtk_combo_box_append_text(GTK_COMBO_BOX(cbox), "Offline");
-	gtk_combo_box_set_active(GTK_COMBO_BOX(cbox), 0);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(cbox), 1);
 	g_signal_connect(G_OBJECT(cbox), "changed",
 	                 G_CALLBACK(cbox_changed_cb), NULL);
 } /* setup_cbox */
@@ -307,7 +307,7 @@ XmppStatus
 ui_get_status(void)
 {
 	switch(gtk_combo_box_get_active(GTK_COMBO_BOX(status_cbox))) {
-		case 1:
+		case 0:
 			return STATUS_FFC;
 		case 2:
 			return STATUS_AWAY;
@@ -347,9 +347,6 @@ ui_setup(int *argc, char **argv[])
 	setup_cbox(status_cbox);
 	status_entry = gtk_entry_new();
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(nbook), TRUE);
-	/* signal for reseting (unbolding) tab titles when switched to 'em */
-	g_signal_connect(G_OBJECT(nbook), "switch-page",
-					G_CALLBACK(tab_switch_cb), NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);
@@ -383,6 +380,8 @@ ui_setup(int *argc, char **argv[])
 	                 G_CALLBACK(keypress_cb), NULL);
 	g_signal_connect(G_OBJECT(window), "focus-in-event",
 	                 G_CALLBACK(focus_cb), NULL);
+	g_signal_connect(G_OBJECT(nbook), "switch-page",
+	                 G_CALLBACK(tab_switch_cb), NULL);
 	/*go go go!*/
 	gtk_widget_show_all(window);
 } /* ui_setup */
