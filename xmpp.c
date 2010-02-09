@@ -191,8 +191,10 @@ mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	LmMessageNode *node;
 	from = lm_message_node_get_attribute(m->node, "from");
 	node = lm_message_node_get_child(m->node, "body");
-	if(node && (body = lm_message_node_get_value(node)))
+	if(node && (body = lm_message_node_get_value(node))) {
 		ui_tab_print_message(from, body);
+		lua_msg_callback(from, body);
+	}
 	/* we're actually ignoring <subject> and <thread> elements,
 	 * as I've never actually seen them being used. If you do, and you care,
 	 * feel obliged to mail me and yell at me */
@@ -296,6 +298,8 @@ parse_status_presence(LmMessage *m)
 		g_string_append_c(msg, '\n');
 	ui_status_print(msg->str);
 	g_string_free(msg, TRUE);
+	lua_pres_callback(sb->jid, xmpp_status_readable(res->status),
+	                  res->status_msg);	
 	ui_roster_update(sb->jid);
 	g_printerr("Done\n");
 }

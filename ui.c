@@ -138,7 +138,7 @@ static gboolean
 keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 {
 	/* We react only on Ctrl+something keys */
-	if(e->state & (guint)4) { /* ctrl mask */
+	if(e->state & GDK_CONTROL_MASK) {
 		switch(e->keyval) {
 		case 104: /* h */
 			ui_roster_toggle_offline();
@@ -150,10 +150,15 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 			close_active_tab();
 			break;
 		case 114: /* r */
-			gtk_widget_grab_focus(rview);
+			if(e->state & GDK_MOD1_MASK) { /* with shift */
+				ui_status_print("Config file reloaded\n");
+				config_reload();
+			} else {
+				gtk_widget_grab_focus(rview);
+			}
 			break;
 		case 115: /* s */
-			if(e->state & (guint)8) /* with alt */
+			if(e->state & GDK_MOD1_MASK) /* with alt */
 				gtk_widget_grab_focus(status_entry);
 			else
 				gtk_widget_grab_focus(status_cbox);
