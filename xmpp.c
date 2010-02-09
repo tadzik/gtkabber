@@ -23,6 +23,7 @@ static void parse_status_presence(LmMessage *);
 static void parse_subscr_presence(LmMessage *);
 LmHandlerResult pres_handler(LmMessageHandler *, LmConnection *,
                              LmMessage *, gpointer);
+static gboolean reconnect(void);
 static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
 void xmpp_cleanup(void);
 void xmpp_init(void);
@@ -36,8 +37,9 @@ void xmpp_roster_parsed_cb(void);
 /*************/
 
 /* global variables */
-LmConnection *connection;
+static LmConnection *connection;
 static int initial_presence_sent = 0;
+static int wantconnection = 1;
 /********************/
 
 static void
@@ -88,6 +90,7 @@ connection_auth_cb(LmConnection *c, gboolean success, gpointer udata) {
 		                                       LM_HANDLER_PRIORITY_NORMAL);
 		lm_message_handler_unref(handler);
 		xmpp_roster_request(c);	
+		g_timeout_add(60000, (GSourceFunc)reconnect, NULL);
 	}
 }
 
@@ -320,6 +323,16 @@ pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 } /* xmpp_pres_handler */
 
+static gboolean
+reconnect(void)
+{
+	if(wantconnection && lm_connection_get_state(connection)
+	                      == LM_CONNECTION_STATE_CLOSED) {
+		connect();
+	}
+	return TRUE;
+} /* reconnect */
+
 static LmSSLResponse
 ssl_cb(LmSSL *ssl, LmSSLStatus st, gpointer u)
 {
@@ -391,7 +404,8 @@ xmpp_init(void) {
 	lm_connection_set_keep_alive_rate(connection, 30);
 	lm_connection_set_disconnect_function(connection, connection_disconnect_cb,
 	                                      NULL, NULL);
-	connect();
+	if(wantconnection)
+		connect();
 }
 
 void
@@ -440,8 +454,12 @@ xmpp_set_status(XmppStatus s)
 		g_error_free(err);
 	}
 	lm_message_unref(p);
-	if(s == STATUS_OFFLINE)
+	if(s == STATUS_OFFLINE) {
+		wantconnection = 0;
 		disconnect();
+	} else {
+		wantconnection = 1;	
+	}
 } /* xmpp_set_status */
 
 static char *
