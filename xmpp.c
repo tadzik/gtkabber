@@ -214,6 +214,7 @@ static void
 parse_status_presence(LmMessage *m)
 {
 	const char *buf;
+	GString *msg;
 	char *jid, *resname, *sep;
 	Buddy *sb;
 	Resource *res;
@@ -286,9 +287,15 @@ parse_status_presence(LmMessage *m)
 	else
 		res->priority = 0;
 	/* printing a message to status window and updating roster entry in ui */
-	ui_status_print("%s/%s is now %s (%s)\n", sb->name, resname,
-	                xmpp_status_readable(res->status),
-	                (res->status_msg) ? res->status_msg : "");
+	msg = g_string_new(NULL);
+	g_string_printf(msg, "%s/%s is now %s", sb->name, resname,
+	                xmpp_status_readable(res->status));
+	if(res->status_msg)
+		g_string_append_printf(msg, " (%s)\n", res->status_msg);
+	else
+		g_string_append_c(msg, '\n');
+	ui_status_print(msg->str);
+	g_string_free(msg, TRUE);
 	ui_roster_update(sb->jid);
 	g_printerr("Done\n");
 }

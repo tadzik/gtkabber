@@ -250,7 +250,8 @@ tab_notify(Chattab *t)
 {
 	gchar *markup;
 	GtkWidget *activechild;
-	set_wm_urgency(); /* this is done even if the tab is active */
+	if(!gtk_window_is_active(GTK_WINDOW(window)))
+		set_wm_urgency();
 	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
 	               gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
 	if(activechild == t->vbox)
