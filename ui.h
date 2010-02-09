@@ -9,6 +9,7 @@ void ui_setup(int *, char ***);
 void ui_set_status(XmppStatus);
 void ui_set_status_msg(const gchar *);
 void ui_show_presence_query(const gchar *);
+void ui_show_subscribe_query(void);
 void ui_status_print(const gchar *, ...);
 void ui_tab_print_message(const gchar *, const gchar *);
 #endif

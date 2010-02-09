@@ -25,6 +25,9 @@ Adjust the config file for your needs and run 'main'. Everything _should_ work f
 * C-M-s - (Control-Alt-s) focus on the status message entry field (press enter to set)
 * C-q - close the current tab (this is actually the only way to close a tab :>)
 
+Furthermore, you can use the following commands (enter them in the status tab's entry field):
+* subscribe - display a popup bar to request someone's subsription. If the buddy is not in your roster, he/she will be added
+
 3. What is alredy done
 ---
 

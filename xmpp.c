@@ -28,7 +28,7 @@ void xmpp_cleanup(void);
 void xmpp_init(void);
 void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
-void xmpp_subscribe(gchar *);
+void xmpp_subscribe(const gchar *, const gchar *, const gchar *);
 void xmpp_subscr_response(gchar *, gint);
 static char *xmpp_status_to_str(XmppStatus);
 static char *xmpp_status_readable(XmppStatus);
@@ -454,7 +454,7 @@ xmpp_status_to_str(XmppStatus status)
 	else return NULL;
 } /* xmpp_status_to_str */
 
-void xmpp_subscribe(gchar *j) {
+void xmpp_subscribe(const gchar *j, const gchar *n, const gchar *g) {
 	LmMessage *msg;
 	LmMessageNode *query, *item;
 	GError *err = NULL;
@@ -466,6 +466,11 @@ void xmpp_subscribe(gchar *j) {
 		lm_message_node_set_attribute(query, "xmlns", "jabber:iq:roster");
 		item = lm_message_node_add_child(query, "item", NULL);
 		lm_message_node_set_attribute(item, "jid", j);
+		lm_message_node_set_attribute(item, "name", n);
+		if(g) {
+			LmMessageNode *group;	
+			group = lm_message_node_add_child(item, "group", g);
+		}
 		if(!lm_connection_send(connection, msg, &err)) {
 			ui_status_print("Error adding buddy to roster: %s\n", err->message);
 			g_error_free(err);

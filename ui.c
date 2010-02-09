@@ -26,6 +26,7 @@ static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
+static void subscr_response_cb(GtkButton *, gpointer);
 static void tab_entry_handler(GtkWidget *, gpointer);
 static void tab_notify(Chattab *);
 static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
@@ -36,6 +37,7 @@ void ui_setup(int *, char ***);
 void ui_set_status(XmppStatus);
 void ui_set_status_msg(const gchar *);
 void ui_show_presence_query(const gchar *);
+void ui_show_subscribe_query(void);
 void ui_status_print(const gchar *msg, ...);
 void ui_tab_print_message(const gchar *, const gchar *);
 /*************/
@@ -204,6 +206,24 @@ set_wm_urgency()
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
 } /* set_wm_urgency */
+
+static void
+subscr_response_cb(GtkButton *b, gpointer t)
+{
+	const gchar *type;
+	GtkWidget *table, *jentry, *nentry, *gentry;
+	type = g_object_get_data(G_OBJECT(b), "type");
+	table = GTK_WIDGET(t);
+	jentry = g_object_get_data(G_OBJECT(b), "jentry");
+	nentry = g_object_get_data(G_OBJECT(b), "nentry");
+	gentry = g_object_get_data(G_OBJECT(b), "gentry");
+	if(g_strcmp0(type, GTK_STOCK_OK) == 0) {
+		xmpp_subscribe(gtk_entry_get_text(GTK_ENTRY(jentry)),
+		               gtk_entry_get_text(GTK_ENTRY(nentry)),
+		               gtk_entry_get_text(GTK_ENTRY(gentry)));
+	}
+	gtk_container_remove(GTK_CONTAINER(infobox), table);
+} /* subscr_response_cb */
 
 static void
 tab_entry_handler(GtkWidget *e, gpointer p)
@@ -421,6 +441,51 @@ ui_show_presence_query(const gchar *j)
 	set_wm_urgency();
 	g_free(msg);
 } /* ui_show_presence_query */
+
+void
+ui_show_subscribe_query(void)
+{
+	GtkWidget *jlabel, *nlabel, *glabel,
+	          *jentry, *nentry, *gentry,
+	          *obutton, *cbutton,
+	          *table;
+	jlabel = gtk_label_new("Jid:");
+	nlabel = gtk_label_new("Name:");
+	glabel = gtk_label_new("Group:");
+
+	jentry = gtk_entry_new();
+	nentry = gtk_entry_new();
+	gentry = gtk_entry_new();
+
+	obutton = gtk_button_new_from_stock(GTK_STOCK_OK);
+	cbutton = gtk_button_new_from_stock(GTK_STOCK_CANCEL);
+
+	table = gtk_table_new(2, 4, FALSE);
+	/* first row */
+	gtk_table_attach_defaults(GTK_TABLE(table), jlabel, 0, 1, 0, 1);
+	gtk_table_attach_defaults(GTK_TABLE(table), nlabel, 1, 2, 0, 1);
+	gtk_table_attach_defaults(GTK_TABLE(table), glabel, 2, 3, 0, 1);
+	gtk_table_attach_defaults(GTK_TABLE(table), cbutton, 3, 4, 0, 1);
+	/* second row */
+	gtk_table_attach_defaults(GTK_TABLE(table), jentry, 0, 1, 1, 2);
+	gtk_table_attach_defaults(GTK_TABLE(table), nentry, 1, 2, 1, 2);
+	gtk_table_attach_defaults(GTK_TABLE(table), gentry, 2, 3, 1, 2);
+	gtk_table_attach_defaults(GTK_TABLE(table), obutton, 3, 4, 1, 2);
+
+	g_signal_connect(G_OBJECT(obutton), "clicked",
+	                 G_CALLBACK(subscr_response_cb), (gpointer)table);
+	g_signal_connect(G_OBJECT(cbutton), "clicked",
+	                 G_CALLBACK(subscr_response_cb), (gpointer)table);
+
+	g_object_set_data(G_OBJECT(cbutton), "type", GTK_STOCK_CANCEL);
+	g_object_set_data(G_OBJECT(obutton), "type", GTK_STOCK_OK);
+	g_object_set_data(G_OBJECT(obutton), "jentry", jentry);
+	g_object_set_data(G_OBJECT(obutton), "nentry", nentry);
+	g_object_set_data(G_OBJECT(obutton), "gentry", gentry);
+	gtk_container_add(GTK_CONTAINER(infobox), table);
+	gtk_widget_show_all(table);
+	gtk_widget_grab_focus(jentry);
+} /* ui_show_subscribe_query */
 
 void
 ui_status_print(const char *msg, ...)

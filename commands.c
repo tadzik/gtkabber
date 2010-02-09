@@ -45,10 +45,8 @@ config_cleanup(void)
 int
 commands_exec(const char *command)
 {
-	if(g_str_has_prefix(command, "subscribe ")) {
-		gchar *jid = g_strdup((&command[10]));
-		xmpp_subscribe(jid);
-		g_free(jid);
+	if(g_strcmp0(command, "subscribe\n")) {
+		ui_show_subscribe_query();
 	} else {
 		/*unkown command*/
 		return 2;
