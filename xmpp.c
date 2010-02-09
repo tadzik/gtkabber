@@ -14,17 +14,17 @@ static void connection_disconnect_cb(LmConnection *, LmDisconnectReason,
                                      gpointer);
 static void connection_open_cb(LmConnection *, gboolean, gpointer);
 static void disconnect(void);
+LmHandlerResult iq_handler(LmMessageHandler *, LmConnection *,
+                           LmMessage *, gpointer);
+LmHandlerResult mesg_handler(LmMessageHandler *, LmConnection *,
+                             LmMessage *, gpointer);
 static void parse_status_presence(LmMessage *);
 static void parse_subscr_presence(LmMessage *);
+LmHandlerResult pres_handler(LmMessageHandler *, LmConnection *,
+                             LmMessage *, gpointer);
 static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
 void xmpp_cleanup(void);
 void xmpp_init(void);
-LmHandlerResult xmpp_iq_handler(LmMessageHandler *, LmConnection *,
-                                LmMessage *, gpointer);
-LmHandlerResult xmpp_mesg_handler(LmMessageHandler *, LmConnection *,
-                                  LmMessage *, gpointer);
-LmHandlerResult xmpp_pres_handler(LmMessageHandler *, LmConnection *,
-                                  LmMessage *, gpointer);
 void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
 void xmpp_subscribe(gchar *);
@@ -71,17 +71,17 @@ connection_auth_cb(LmConnection *c, gboolean success, gpointer udata) {
 		ui_status_print("ERROR: Authentication failed\n");
 	} else {
 		LmMessageHandler *handler;
-		handler = lm_message_handler_new(xmpp_iq_handler, NULL, NULL);
+		handler = lm_message_handler_new(iq_handler, NULL, NULL);
 		lm_connection_register_message_handler(c, handler,
 		                                       LM_MESSAGE_TYPE_IQ,
 		                                       LM_HANDLER_PRIORITY_NORMAL);
 		lm_message_handler_unref(handler);
-		handler = lm_message_handler_new(xmpp_mesg_handler, NULL, NULL);
+		handler = lm_message_handler_new(mesg_handler, NULL, NULL);
 		lm_connection_register_message_handler(c, handler,
 		                                       LM_MESSAGE_TYPE_MESSAGE,
 		                                       LM_HANDLER_PRIORITY_NORMAL);
 		lm_message_handler_unref(handler);
-		handler = lm_message_handler_new(xmpp_pres_handler, NULL, NULL);
+		handler = lm_message_handler_new(pres_handler, NULL, NULL);
 		lm_connection_register_message_handler(c, handler,
 		                                       LM_MESSAGE_TYPE_PRESENCE,
 		                                       LM_HANDLER_PRIORITY_NORMAL);
@@ -164,6 +164,36 @@ disconnect() {
 		g_printerr("Disconnected\n");
 	}
 }
+
+LmHandlerResult
+iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
+           gpointer userdata) {
+	LmMessageNode *query;
+	query = lm_message_node_get_child(m->node, "query");
+	if(query) {
+		if(g_strcmp0(lm_message_node_get_attribute(query, "xmlns"),
+		             "jabber:iq:roster") == 0) {
+			xmpp_roster_parse_query(c, query);
+		}
+	}
+	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
+}
+
+LmHandlerResult
+mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
+             gpointer udata)
+{
+	const char *from, *body;
+	LmMessageNode *node;
+	from = lm_message_node_get_attribute(m->node, "from");
+	node = lm_message_node_get_child(m->node, "body");
+	if(node && (body = lm_message_node_get_value(node)))
+		ui_tab_print_message(from, body);
+	/* we're actually ignoring <subject> and <thread> elements,
+	 * as I've never actually seen them being used. If you do, and you care,
+	 * feel obliged to mail me and yell at me */
+	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
+} /* xmpp_mesg_handler */
 
 static void
 parse_status_presence(LmMessage *m)
@@ -252,12 +282,29 @@ static void
 parse_subscr_presence(LmMessage *m)
 {
 	const char *type, *jid;
-	ui_status_print("Hurr, something with subscribe\n");
 	type = lm_message_node_get_attribute(m->node, "type");
 	jid = lm_message_node_get_attribute(m->node, "from");
+	ui_status_print("Got presence, type '%s' from %s\n", type, jid);
 	if(!type || (g_strcmp0(type, "subscribe") == 0))
 		ui_show_presence_query(jid);
 }
+
+LmHandlerResult
+pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
+             gpointer udata)
+{
+	const char *type = lm_message_node_get_attribute(m->node, "type");
+	if(!type || (g_strcmp0(type, "unavailable") == 0)) {
+		parse_status_presence(m);
+	} else {
+		if(strstr(type, "subscribe") == 0
+		|| strstr(type, "unsubscribe") == 0)
+			parse_subscr_presence(m);
+		else
+			ui_status_print("Got presence of type %s\n", type);
+	}
+	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
+} /* xmpp_pres_handler */
 
 static LmSSLResponse
 ssl_cb(LmSSL *ssl, LmSSLStatus st, gpointer u)
@@ -333,48 +380,6 @@ xmpp_init(void) {
 	connect();
 }
 
-LmHandlerResult
-xmpp_iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
-				gpointer userdata) {
-	LmMessageNode *query;
-	query = lm_message_node_get_child(m->node, "query");
-	if(query) {
-		if(g_strcmp0(lm_message_node_get_attribute(query, "xmlns"),
-		             "jabber:iq:roster") == 0) {
-			xmpp_roster_parse_query(c, query);
-		}
-	}
-	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
-}
-
-LmHandlerResult
-xmpp_mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
-                  gpointer udata)
-{
-	const char *from, *body;
-	LmMessageNode *node;
-	from = lm_message_node_get_attribute(m->node, "from");
-	node = lm_message_node_get_child(m->node, "body");
-	if(node && (body = lm_message_node_get_value(node)))
-		ui_tab_print_message(from, body);
-	/* we're actually ignoring <subject> and <thread> elements,
-	 * as I've never actually seen them being used. If you do, and you care,
-	 * feel obliged to mail me and yell at me */
-	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
-} /* xmpp_mesg_handler */
-
-LmHandlerResult
-xmpp_pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
-                  gpointer udata)
-{
-	const char *buf = lm_message_node_get_attribute(m->node, "type");
-	if(!buf || (g_strcmp0(buf, "unavailable") == 0))
-		parse_status_presence(m);
-	else if(strstr(buf, "subscribe") != NULL)
-		parse_subscr_presence(m);
-	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
-} /* xmpp_pres_handler */
-
 void
 xmpp_send_message(const char *to, const char *msg)
 {
@@ -439,17 +444,20 @@ void xmpp_subscribe(gchar *j) {
 	LmMessage *msg;
 	LmMessageNode *query, *item;
 	GError *err = NULL;
-	msg = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_IQ,
-	                                   LM_MESSAGE_SUB_TYPE_SET);
-	query = lm_message_node_add_child(msg->node, "query", NULL);
-	lm_message_node_set_attribute(query, "xmlns", "jabber:iq:roster");
-	item = lm_message_node_add_child(query, "item", NULL);
-	lm_message_node_set_attribute(item, "jid", j);
-	if(!lm_connection_send(connection, msg, &err)) {
-		ui_status_print("Error adding buddy to roster: %s\n", err->message);
-		g_error_free(err);
+	/* if buddy not in our roster, add him */
+	if(!xmpp_roster_find_by_jid(j)) {
+		msg = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_IQ,
+	                                           LM_MESSAGE_SUB_TYPE_SET);
+		query = lm_message_node_add_child(msg->node, "query", NULL);
+		lm_message_node_set_attribute(query, "xmlns", "jabber:iq:roster");
+		item = lm_message_node_add_child(query, "item", NULL);
+		lm_message_node_set_attribute(item, "jid", j);
+		if(!lm_connection_send(connection, msg, &err)) {
+			ui_status_print("Error adding buddy to roster: %s\n", err->message);
+			g_error_free(err);
+		}
+		lm_message_unref(msg);
 	}
-	lm_message_unref(msg);
 	/* sending subscription request */	
 	msg = lm_message_new_with_sub_type(j, LM_MESSAGE_TYPE_PRESENCE,
 	                                   LM_MESSAGE_SUB_TYPE_SUBSCRIBE);
