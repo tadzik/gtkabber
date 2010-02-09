@@ -7,7 +7,7 @@
 #include "xmpp_roster.h"
 #include "types.h"
 #include "ui_roster.h"
-#include "commands.h"
+#include "config.h"
 
 /* Here be everything ui-related, except the roster part,
  * which is in ui_roster.c
@@ -21,11 +21,13 @@ static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
 static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
 static void free_all_tabs(void);
+static void hide_options(GtkButton *, gpointer);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
+static void show_options(void);
 static void subscr_response_cb(GtkButton *, gpointer);
 static void tab_entry_handler(GtkWidget *, gpointer);
 static void tab_notify(Chattab *);
@@ -44,7 +46,7 @@ void ui_tab_print_message(const gchar *, const gchar *);
 
 /* global variables */
 static Chattab *status_tab;
-static GtkWidget *infobox, *nbook, *rview, 
+static GtkWidget *toolbox, *nbook, *rview, 
                  *status_cbox, *status_entry, *window;
 static GSList *tabs;
 /********************/
@@ -123,13 +125,19 @@ free_all_tabs(void)
 } /* free_all_tabs*/
 
 static void
+hide_options(GtkButton *b, gpointer p)
+{
+	gtk_container_remove(GTK_CONTAINER(toolbox), p);
+} /* hide_options */
+
+static void
 infobar_response_cb(GtkInfoBar *i, gint r, gpointer j)
 {
 	gchar *jid = (gchar *)j;
 	ui_status_print("Sending response to %s\n", jid);
 	xmpp_subscr_response(jid, (r == GTK_RESPONSE_YES)
 	                                 ? TRUE : FALSE);
-	gtk_container_remove(GTK_CONTAINER(infobox), GTK_WIDGET(i));
+	gtk_container_remove(GTK_CONTAINER(toolbox), GTK_WIDGET(i));
 	g_free(jid);
 }
 
@@ -141,6 +149,9 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 		switch(e->keyval) {
 		case 104: /* h */
 			ui_roster_toggle_offline();
+			break;
+		case 111: /* o */
+			show_options();
 			break;
 		case 113: /* q */
 			close_active_tab();
@@ -170,7 +181,7 @@ tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 	Chattab *tab;
 	child = gtk_notebook_get_nth_page(b, n);
 	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
-	if(tab) { /* just in case */
+	if(tab->jid) {
 		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
 		gtk_widget_grab_focus(tab->entry);
 	}
@@ -199,13 +210,37 @@ setup_cbox(GtkWidget *cbox)
 } /* setup_cbox */
 
 static void
-set_wm_urgency()
+set_wm_urgency(void)
 {
 	if(gtk_window_is_active(GTK_WINDOW(window))) return;
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
 } /* set_wm_urgency */
+
+static void
+show_options(void)
+{
+	GtkWidget *hbox, *sbutton, *cbutton;
+	hbox = gtk_hbutton_box_new();
+	gtk_button_box_set_layout(GTK_BUTTON_BOX(hbox), GTK_BUTTONBOX_SPREAD);
+	sbutton = gtk_button_new_with_mnemonic("_Subscribe");
+	cbutton = gtk_button_new_with_mnemonic("_Cancel");
+	/* button specific callbacks */
+	g_signal_connect(G_OBJECT(sbutton), "clicked",
+	                 G_CALLBACK(ui_show_subscribe_query), NULL);
+	/* hide_options callback has to be connected
+	 * to every button's "clicked" signal */
+	g_signal_connect(G_OBJECT(sbutton), "clicked",
+	                 G_CALLBACK(hide_options), hbox);
+	g_signal_connect(G_OBJECT(cbutton), "clicked",
+	                 G_CALLBACK(hide_options), hbox);
+	/* packing */
+	gtk_container_add(GTK_CONTAINER(hbox), sbutton);
+	gtk_container_add(GTK_CONTAINER(hbox), cbutton);
+	gtk_container_add(GTK_CONTAINER(toolbox), hbox);
+	gtk_widget_show_all(hbox);
+} /* show options */
 
 static void
 subscr_response_cb(GtkButton *b, gpointer t)
@@ -222,30 +257,22 @@ subscr_response_cb(GtkButton *b, gpointer t)
 		               gtk_entry_get_text(GTK_ENTRY(nentry)),
 		               gtk_entry_get_text(GTK_ENTRY(gentry)));
 	}
-	gtk_container_remove(GTK_CONTAINER(infobox), table);
+	gtk_container_remove(GTK_CONTAINER(toolbox), table);
 } /* subscr_response_cb */
 
 static void
 tab_entry_handler(GtkWidget *e, gpointer p)
 {
-	/* Internal one, universal handler for tabs' "activate" signal
-	 * calling commands_exec() from commands.c or sending message
-	 * via xmpp_send_message(), depending on whether
-	 * we are in status tab, or chat tab */
+	/* Sending message to the interlocutor
+	 * and printing in in tab's buffer */
 	Chattab *tab = (Chattab *)p;
+	gchar *str;
 	const gchar *input = gtk_entry_get_text(GTK_ENTRY(e));
 	if(!input[0]) return;
-	if(tab->jid) {
-		gchar *str;
-		xmpp_send_message(tab->jid, input);
-		str = g_strdup_printf("--> %s\n", input);
-		append_to_tab(tab, str);
-		g_free(str);
-	} else {
-		if(commands_exec(input)) {
-			ui_status_print("Error: unknown command\n");
-		}
-	}
+	xmpp_send_message(tab->jid, input);
+	str = g_strdup_printf("--> %s\n", input);
+	append_to_tab(tab, str);
+	g_free(str);
 	gtk_entry_set_text(GTK_ENTRY(e), "");
 } /* tab_entry_handler */
 
@@ -296,25 +323,27 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
 	                                      tview);
 	/* setting up the entry field */
-	tab->entry = gtk_entry_new();
-	/* Sending messages/running commands, depending on a tab type.
-	 * Handler decides, it's universal  */
-	g_signal_connect(G_OBJECT(tab->entry), "activate",
-	                 G_CALLBACK(tab_entry_handler), (void *)tab);
+	if(jid) {
+		tab->entry = gtk_entry_new();
+		g_signal_connect(G_OBJECT(tab->entry), "activate",
+	                         G_CALLBACK(tab_entry_handler), (void *)tab);
+	}
 	/* some vbox to put it together */
 	tab->vbox = gtk_vbox_new(FALSE, 0);
 	/* this will help us finding Chattab struct by some of its properties */
 	g_object_set_data(G_OBJECT(tab->vbox), "chattab-data", tab);
 	/* now let's put it all together */
 	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->scrolled);
-	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->entry);
-	gtk_box_set_child_packing(GTK_BOX(tab->vbox), tab->entry, FALSE,
-	                          FALSE, 0, GTK_PACK_START);
+	if(jid) {
+		gtk_container_add(GTK_CONTAINER(tab->vbox), tab->entry);
+		gtk_box_set_child_packing(GTK_BOX(tab->vbox), tab->entry, FALSE,
+	                                  FALSE, 0, GTK_PACK_START);
+	}
 	gtk_widget_show_all(tab->vbox);
 	/* aaand, launch! */
 	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, tab->label);
 	tabs = g_slist_prepend(tabs, tab);
-	if(active) {
+	if(active && jid) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook),
 	       	                              gtk_notebook_page_num(GTK_NOTEBOOK(nbook),
 	                                                            tab->vbox));
@@ -355,7 +384,7 @@ ui_setup(int *argc, char **argv[])
 	gtk_init(argc, argv);
 	/* creating widgets */
 	hpaned = gtk_hpaned_new();
-	infobox = gtk_vbox_new(FALSE, 0);
+	toolbox = gtk_vbox_new(FALSE, 0);
 	leftbox = gtk_vbox_new(FALSE, 0);
 	nbook = gtk_notebook_new();
 	rview = ui_roster_setup();
@@ -377,7 +406,7 @@ ui_setup(int *argc, char **argv[])
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), rview);
 	gtk_container_add(GTK_CONTAINER(window), vbox);
 	gtk_container_add(GTK_CONTAINER(vbox), hpaned);
-	gtk_container_add(GTK_CONTAINER(vbox), infobox);
+	gtk_container_add(GTK_CONTAINER(vbox), toolbox);
 	gtk_paned_add1(GTK_PANED(hpaned), leftbox);
 	gtk_container_add(GTK_CONTAINER(leftbox), rwin);
 	gtk_container_add(GTK_CONTAINER(leftbox), status_cbox);
@@ -389,7 +418,7 @@ ui_setup(int *argc, char **argv[])
 	                          FALSE, FALSE, 0, GTK_PACK_START);
 	gtk_box_set_child_packing(GTK_BOX(vbox), hpaned,
 	                          TRUE, TRUE, 0, GTK_PACK_START);
-	gtk_box_set_child_packing(GTK_BOX(vbox), infobox,
+	gtk_box_set_child_packing(GTK_BOX(vbox), toolbox,
 	                          FALSE, FALSE, 0, GTK_PACK_START);
 	/* setting up signals */
 	g_signal_connect(G_OBJECT(window), "destroy",
@@ -434,7 +463,7 @@ ui_show_presence_query(const gchar *j)
 	gtk_info_bar_set_message_type(GTK_INFO_BAR(ibar), GTK_MESSAGE_QUESTION);
 	conarea = gtk_info_bar_get_content_area(GTK_INFO_BAR(ibar));
 	gtk_container_add(GTK_CONTAINER(conarea), label);
-	gtk_container_add(GTK_CONTAINER(infobox), ibar);
+	gtk_container_add(GTK_CONTAINER(toolbox), ibar);
 	g_signal_connect(G_OBJECT(ibar), "response",
 	                 G_CALLBACK(infobar_response_cb), (gpointer)jid);
 	gtk_widget_show_all(ibar);
@@ -482,7 +511,7 @@ ui_show_subscribe_query(void)
 	g_object_set_data(G_OBJECT(obutton), "jentry", jentry);
 	g_object_set_data(G_OBJECT(obutton), "nentry", nentry);
 	g_object_set_data(G_OBJECT(obutton), "gentry", gentry);
-	gtk_container_add(GTK_CONTAINER(infobox), table);
+	gtk_container_add(GTK_CONTAINER(toolbox), table);
 	gtk_widget_show_all(table);
 	gtk_widget_grab_focus(jentry);
 } /* ui_show_subscribe_query */

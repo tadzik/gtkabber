@@ -11,9 +11,9 @@ LDFLAGS=$(LIBS)
 
 all: main
 
-commands.o: commands.c types.h xmpp.h ui.h
-	@echo "Compiling commands.c"
-	@$(CC) $(CFLAGS) -c commands.c
+config.o: config.c types.h xmpp.h ui.h
+	@echo "Compiling config.c"
+	@$(CC) $(CFLAGS) -c config.c
 
 main.o: main.c types.h ui.h
 	@echo "Compiling main.c"
@@ -23,11 +23,11 @@ ui.o: types.h ui.c
 	@echo "Compiling ui.c"
 	@$(CC) $(CFLAGS) -c ui.c
 
-ui_roster.o: commands.h types.h ui.c ui_roster.c
+ui_roster.o: config.h types.h ui.c ui_roster.c
 	@echo "Compiling ui_roster.c"
 	@$(CC) $(CFLAGS) -c ui_roster.c
 
-xmpp.o: types.h ui.h xmpp.c commands.h xmpp_roster.h
+xmpp.o: types.h ui.h xmpp.c config.h xmpp_roster.h
 	@echo "Compiling xmpp.c"
 	@$(CC) $(CFLAGS) -c xmpp.c
 
@@ -35,9 +35,9 @@ xmpp_roster.o: types.h ui.h xmpp.h xmpp_roster.c
 	@echo "Compiling xmpp_roster.c"
 	@$(CC) $(CFLAGS) -c xmpp_roster.c
 
-main: commands.o main.o ui.o ui_roster.o xmpp.o xmpp_roster.o
+main: config.o main.o ui.o ui_roster.o xmpp.o xmpp_roster.o
 	@echo "Linking the whole project"
-	@$(LD) $(LDFLAGS) commands.o main.o ui.o ui_roster.o \
+	@$(LD) $(LDFLAGS) config.o main.o ui.o ui_roster.o \
 					xmpp.o xmpp_roster.o -o main
 
 clean:

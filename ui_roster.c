@@ -1,7 +1,7 @@
 #include <gtk/gtk.h>
 #include <stdlib.h>
 #include <string.h>
-#include "commands.h"
+#include "config.h"
 #include "types.h"
 #include "ui.h"
 #include "xmpp_roster.h"

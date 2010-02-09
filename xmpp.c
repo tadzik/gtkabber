@@ -1,7 +1,7 @@
 #include <loudmouth/loudmouth.h>
 #include <stdlib.h>
 #include <string.h>
-#include "commands.h"
+#include "config.h"
 #include "ui.h"
 #include "ui_roster.h"
 #include "xmpp_roster.h"

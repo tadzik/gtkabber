@@ -17,7 +17,6 @@
 
 /* functions */
 void config_cleanup(void);
-gint commands_exec(const char *);
 void config_init(void);
 static int getbool(const gchar *);
 static int getint(const gchar *);
@@ -41,18 +40,6 @@ config_cleanup(void)
 	}
 	lua_close(lua);
 }
-
-int
-commands_exec(const char *command)
-{
-	if(g_strcmp0(command, "subscribe\n")) {
-		ui_show_subscribe_query();
-	} else {
-		/*unkown command*/
-		return 2;
-	}
-	return 0;
-} /* commands_exec */
 
 void
 config_init(void) 
