@@ -284,7 +284,7 @@ parse_subscr_presence(LmMessage *m)
 	const char *type, *jid;
 	type = lm_message_node_get_attribute(m->node, "type");
 	jid = lm_message_node_get_attribute(m->node, "from");
-	ui_status_print("Got presence, type '%s' from %s\n", type, jid);
+	ui_status_print("Got presence subscription, type '%s' from %s\n", type, jid);
 	if(!type || (g_strcmp0(type, "subscribe") == 0))
 		ui_show_presence_query(jid);
 }
@@ -297,8 +297,8 @@ pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	if(!type || (g_strcmp0(type, "unavailable") == 0)) {
 		parse_status_presence(m);
 	} else {
-		if(strstr(type, "subscribe") == 0
-		|| strstr(type, "unsubscribe") == 0)
+		if(strncmp(type, "subscribe", strlen("subscribe")) == 0
+		|| strncmp(type, "unsubscribe", strlen("unsubscribe")) == 0)
 			parse_subscr_presence(m);
 		else
 			ui_status_print("Got presence of type %s\n", type);
