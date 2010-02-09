@@ -21,17 +21,16 @@ static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
 static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
 static void free_all_tabs(void);
-static void hide_options(GtkButton *, gpointer);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
-static void show_options(void);
 static void subscr_response_cb(GtkButton *, gpointer);
 static void tab_entry_handler(GtkWidget *, gpointer);
 static void tab_notify(Chattab *);
 static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
+static void toggle_options(void);
 Chattab *ui_create_tab(const gchar *, const gchar *, gint);
 XmppStatus ui_get_status(void);
 const gchar *ui_get_status_msg(void);
@@ -125,12 +124,6 @@ free_all_tabs(void)
 } /* free_all_tabs*/
 
 static void
-hide_options(GtkButton *b, gpointer p)
-{
-	gtk_container_remove(GTK_CONTAINER(toolbox), p);
-} /* hide_options */
-
-static void
 infobar_response_cb(GtkInfoBar *i, gint r, gpointer j)
 {
 	gchar *jid = (gchar *)j;
@@ -151,7 +144,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 			ui_roster_toggle_offline();
 			break;
 		case 111: /* o */
-			show_options();
+			toggle_options();
 			break;
 		case 113: /* q */
 			close_active_tab();
@@ -219,30 +212,6 @@ set_wm_urgency(void)
 } /* set_wm_urgency */
 
 static void
-show_options(void)
-{
-	GtkWidget *hbox, *sbutton, *cbutton;
-	hbox = gtk_hbutton_box_new();
-	gtk_button_box_set_layout(GTK_BUTTON_BOX(hbox), GTK_BUTTONBOX_SPREAD);
-	sbutton = gtk_button_new_with_mnemonic("_Subscribe");
-	cbutton = gtk_button_new_with_mnemonic("_Cancel");
-	/* button specific callbacks */
-	g_signal_connect(G_OBJECT(sbutton), "clicked",
-	                 G_CALLBACK(ui_show_subscribe_query), NULL);
-	/* hide_options callback has to be connected
-	 * to every button's "clicked" signal */
-	g_signal_connect(G_OBJECT(sbutton), "clicked",
-	                 G_CALLBACK(hide_options), hbox);
-	g_signal_connect(G_OBJECT(cbutton), "clicked",
-	                 G_CALLBACK(hide_options), hbox);
-	/* packing */
-	gtk_container_add(GTK_CONTAINER(hbox), sbutton);
-	gtk_container_add(GTK_CONTAINER(hbox), cbutton);
-	gtk_container_add(GTK_CONTAINER(toolbox), hbox);
-	gtk_widget_show_all(hbox);
-} /* show options */
-
-static void
 subscr_response_cb(GtkButton *b, gpointer t)
 {
 	const gchar *type;
@@ -291,6 +260,29 @@ tab_notify(Chattab *t)
 	gtk_label_set_markup(GTK_LABEL(t->label), markup);
 	g_free(markup);
 } /* tab_notify */
+
+static void
+toggle_options(void)
+{
+	static int shown = 0;
+	static GtkWidget *hbox;
+	if(!shown) {
+		GtkWidget *sbutton;
+		hbox = gtk_hbutton_box_new();
+		gtk_button_box_set_layout(GTK_BUTTON_BOX(hbox), GTK_BUTTONBOX_SPREAD);
+		sbutton = gtk_button_new_with_mnemonic("_Subscribe");
+		/* callbacks */
+		g_signal_connect(G_OBJECT(sbutton), "clicked",
+		                 G_CALLBACK(ui_show_subscribe_query), NULL);
+		/* packing */
+		gtk_container_add(GTK_CONTAINER(hbox), sbutton);
+		gtk_box_pack_end(GTK_BOX(toolbox), hbox, FALSE, FALSE, 0);
+		gtk_widget_show_all(hbox);
+	} else {
+		gtk_container_remove(GTK_CONTAINER(toolbox), hbox);
+	}
+	shown = !shown;
+} /* toggle_options */
 
 Chattab *
 ui_create_tab(const gchar *jid, const gchar *title, gint active)

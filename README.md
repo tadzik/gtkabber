@@ -24,7 +24,7 @@ Adjust the config file for your needs and run 'main'. Everything _should_ work f
 * C-s - focus on the status selection combobox
 * C-M-s - (Control-Alt-s) focus on the status message entry field (press enter to set)
 * C-q - close the current tab (this is actually the only way to close a tab :>)
-* C-o - show some more available actions (displays a button box at bottom)
+* C-o - toggle the actions bar (displays a button box at bottom)
 
 3. What is alredy done
 ---
