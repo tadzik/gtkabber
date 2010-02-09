@@ -18,6 +18,7 @@ LmHandlerResult iq_handler(LmMessageHandler *, LmConnection *,
                            LmMessage *, gpointer);
 LmHandlerResult mesg_handler(LmMessageHandler *, LmConnection *,
                              LmMessage *, gpointer);
+static void parse_err_presence(LmMessage *);
 static void parse_status_presence(LmMessage *);
 static void parse_subscr_presence(LmMessage *);
 LmHandlerResult pres_handler(LmMessageHandler *, LmConnection *,
@@ -196,6 +197,17 @@ mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 } /* xmpp_mesg_handler */
 
 static void
+parse_err_presence(LmMessage *m)
+{
+	const gchar *from, *code;
+	LmMessageNode *node;
+	from = lm_message_node_get_attribute(m->node, "from");
+	node = lm_message_node_get_child(m->node, "error");
+	code = lm_message_node_get_attribute(node, "code");
+	ui_status_print("Got presence of type 'error' from %s (error code %s)\n", from, code);
+}
+
+static void
 parse_status_presence(LmMessage *m)
 {
 	const char *buf;
@@ -300,6 +312,8 @@ pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 		if(strncmp(type, "subscribe", strlen("subscribe")) == 0
 		|| strncmp(type, "unsubscribe", strlen("unsubscribe")) == 0)
 			parse_subscr_presence(m);
+		else if(g_strcmp0(type, "error") == 0)
+			parse_err_presence(m);
 		else
 			ui_status_print("Got presence of type %s\n", type);
 	}
