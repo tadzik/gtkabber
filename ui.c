@@ -82,7 +82,7 @@ close_active_tab(void)
 {
 	Chattab *tab = get_active_tab();
 	int pageno = gtk_notebook_page_num(GTK_NOTEBOOK(nbook), tab->vbox);
-	if(tab->jid == NULL) /* removing status tab is a bad idea */
+	if(tab->jid == NULL)
 		return;
 	g_free(tab->jid);
 	g_free(tab->title);
