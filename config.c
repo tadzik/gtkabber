@@ -19,12 +19,15 @@
 void config_cleanup(void);
 void config_init(void);
 void config_reload(void);
+static int fun_print(lua_State *);
+static int fun_sendmsg(lua_State *);
 static int getbool(const gchar *);
 static int getint(const gchar *);
 static gchar *getstr(const gchar *);
 Option get_settings(Settings);
 static void init_settings(void);
 static void loadfile(void);
+static void loadlib(void);
 void lua_msg_callback(const gchar *, const gchar *);
 void lua_pres_callback(const gchar *, const gchar *, const gchar *);
 /*************/
@@ -52,13 +55,34 @@ config_init(void)
 	 * to commands_exec() */	
 	init_settings();
 	loadfile();
+	loadlib();
 } /* config_parse_rcfile */
 
 void config_reload(void)
 {
 	lua_close(lua);
-	loadfile();
+	config_init();
 } /* config_reload */
+
+static int
+fun_print(lua_State *l)
+{
+	const gchar *txt;
+	txt = lua_tostring(l, 1);
+	if(txt)
+		ui_status_print(txt);
+	return 0;
+} /* fun_sendmsg */
+
+static int
+fun_sendmsg(lua_State *l)
+{
+	const gchar *to, *body;
+	to = lua_tostring(l, 1);
+	body = lua_tostring(l, 2);
+	xmpp_send_message(to, body);
+	return 0;
+} /* fun_sendmsg */
 
 static int
 getbool(const gchar *o)
@@ -162,6 +186,24 @@ loadfile(void)
 	}
 	g_free(path);
 } /* loadfile */
+
+static void loadlib(void)
+{
+	/* here we create a table with C functions (pseudo-object)
+	 * then we set it global, so one can use it in lua scripts
+	 * like `gtkabber.sendmsg(blah, blah)` */
+	lua_newtable(lua);
+	/* fun_sendmsg as "sendmsg" */
+	lua_pushstring(lua, "sendmsg");
+	lua_pushcfunction(lua, fun_sendmsg);
+	lua_settable(lua, -3);
+
+	lua_pushstring(lua, "print");
+	lua_pushcfunction(lua, fun_print);
+	lua_settable(lua, -3);
+	/* setting our "library" global */
+	lua_setglobal(lua, "gtkabber");
+} /* loadlib */
 
 void
 lua_msg_callback(const gchar *j, const gchar *m)
