@@ -254,12 +254,10 @@ static void
 tab_notify(Chattab *t)
 {
 	gchar *markup;
-	GtkWidget *activechild;
+	Chattab *active = get_active_tab();
 	if(!gtk_window_is_active(GTK_WINDOW(window)))
 		set_wm_urgency();
-	activechild = (gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook),
-	               gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook))));
-	if(activechild == t->vbox)
+	if(active->vbox == t->vbox)
 		/* this tab's alredy active */
 		return;
 	markup = g_strdup_printf("<b>%s</b>", t->title);
@@ -270,10 +268,7 @@ tab_notify(Chattab *t)
 static void
 tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 {	
-	GtkWidget *child;
-	Chattab *tab;
-	child = gtk_notebook_get_nth_page(b, n);
-	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
+	Chattab *tab = get_active_tab();
 	if(tab->jid) {
 		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
 		gtk_widget_grab_focus(tab->entry);
