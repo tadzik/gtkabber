@@ -102,14 +102,8 @@ destroy(GtkWidget *widget, gpointer data)
 static void
 focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 {
-	Chattab *tab;
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
-	tab = get_active_tab();
-	if(tab->jid)
-		gtk_widget_grab_focus(tab->entry);
-	else
-		gtk_widget_grab_focus(nbook);
 } /* focus_cb */
 
 static void
