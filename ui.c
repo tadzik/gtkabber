@@ -21,6 +21,7 @@ static void close_active_tab(void);
 static void destroy(GtkWidget *, gpointer);
 static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
 static void free_all_tabs(void);
+static Chattab *get_active_tab(void);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void scroll_tab_down(Chattab *);
@@ -79,11 +80,8 @@ cbox_changed_cb(GtkComboBox *e, gpointer p)
 static void
 close_active_tab(void)
 {
-	GtkWidget *child;
-	Chattab *tab;
-	int pageno = gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook));
-	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook), pageno);
-	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
+	Chattab *tab = get_active_tab();
+	int pageno = gtk_notebook_page_num(GTK_NOTEBOOK(nbook), tab->vbox);
 	if(tab->jid == NULL) /* removing status tab is a bad idea */
 		return;
 	g_free(tab->jid);
@@ -104,8 +102,14 @@ destroy(GtkWidget *widget, gpointer data)
 static void
 focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 {
+	Chattab *tab;
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
+	tab = get_active_tab();
+	if(tab->jid)
+		gtk_widget_grab_focus(tab->entry);
+	else
+		gtk_widget_grab_focus(nbook);
 } /* focus_cb */
 
 static void
@@ -122,6 +126,15 @@ free_all_tabs(void)
 		g_slist_free(tabs);
 	}
 } /* free_all_tabs*/
+
+static Chattab *
+get_active_tab(void)
+{
+	GtkWidget *child;
+	int pageno = gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook));
+	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook), pageno);
+	return (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
+} /* get_active_tab */
 
 static void
 infobar_response_cb(GtkInfoBar *i, gint r, gpointer j)
@@ -171,19 +184,6 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 
 	return 0;
 } /* keypress_cb */
-
-static void
-tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
-{	
-	GtkWidget *child;
-	Chattab *tab;
-	child = gtk_notebook_get_nth_page(b, n);
-	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
-	if(tab->jid) {
-		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
-		gtk_widget_grab_focus(tab->entry);
-	}
-} /* tab_switch_cb */
 
 static void
 scroll_tab_down(Chattab *tab)
@@ -266,6 +266,21 @@ tab_notify(Chattab *t)
 	gtk_label_set_markup(GTK_LABEL(t->label), markup);
 	g_free(markup);
 } /* tab_notify */
+
+static void
+tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
+{	
+	GtkWidget *child;
+	Chattab *tab;
+	child = gtk_notebook_get_nth_page(b, n);
+	tab = (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
+	if(tab->jid) {
+		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
+		gtk_widget_grab_focus(tab->entry);
+	} else {
+		gtk_widget_grab_focus(nbook);
+	}
+} /* tab_switch_cb */
 
 static void
 toggle_options(void)
