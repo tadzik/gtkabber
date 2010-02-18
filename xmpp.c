@@ -31,8 +31,8 @@ void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
 void xmpp_subscribe(const gchar *, const gchar *, const gchar *);
 void xmpp_subscr_response(gchar *, gint);
-static char *xmpp_status_to_str(XmppStatus);
-static char *xmpp_status_readable(XmppStatus);
+static gchar *xmpp_status_to_str(XmppStatus);
+static gchar *xmpp_status_readable(XmppStatus);
 void xmpp_roster_parsed_cb(void);
 /*************/
 
@@ -46,6 +46,7 @@ static void
 connect() {
 	GError *err = NULL;
 	gchar *conf_server;
+	wantconnection = 1;
 	if(lm_connection_is_open(connection)) {
 		ui_status_print("connect: connection alredy opened, aborting\n");
 		return;	
@@ -441,6 +442,11 @@ xmpp_set_status(XmppStatus s)
 	GError *err = NULL;
 	const char *status, *status_msg;
 	gchar *conf_priority;
+	if(s == STATUS_OFFLINE) {
+		wantconnection = 0;
+		disconnect();
+		return;
+	}
 	if(!connection || !lm_connection_is_open(connection)) {
 		ui_status_print("Not connected, connecting\n");
 		connect();
@@ -465,12 +471,6 @@ xmpp_set_status(XmppStatus s)
 		g_error_free(err);
 	}
 	lm_message_unref(p);
-	if(s == STATUS_OFFLINE) {
-		wantconnection = 0;
-		disconnect();
-	} else {
-		wantconnection = 1;	
-	}
 } /* xmpp_set_status */
 
 static char *
