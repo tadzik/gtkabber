@@ -254,8 +254,7 @@ tab_notify(Chattab *t)
 {
 	gchar *markup;
 	Chattab *active = get_active_tab();
-	if(!gtk_window_is_active(GTK_WINDOW(window)))
-		set_wm_urgency();
+	set_wm_urgency();
 	if(active->vbox == t->vbox)
 		/* this tab's alredy active */
 		return;
