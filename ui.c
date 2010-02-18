@@ -22,6 +22,7 @@ static void destroy(GtkWidget *, gpointer);
 static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
 static void free_all_tabs(void);
 static Chattab *get_active_tab(void);
+static Chattab *get_tab_content(gint n);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void scroll_tab_down(Chattab *);
@@ -124,9 +125,13 @@ free_all_tabs(void)
 static Chattab *
 get_active_tab(void)
 {
-	GtkWidget *child;
-	int pageno = gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook));
-	child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook), pageno);
+	return get_tab_content(gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook)));
+}
+
+static Chattab *
+get_tab_content(gint n)
+{
+	GtkWidget *child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook), n);
 	return (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
 } /* get_active_tab */
 
@@ -262,7 +267,7 @@ tab_notify(Chattab *t)
 static void
 tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 {	
-	Chattab *tab = get_active_tab();
+	Chattab *tab = get_tab_content(n);
 	if(tab->jid) {
 		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
 		gtk_widget_grab_focus(tab->entry);
@@ -418,8 +423,6 @@ ui_setup(int *argc, char **argv[])
 	                          FALSE, FALSE, 0, GTK_PACK_START);
 	gtk_box_set_child_packing(GTK_BOX(leftbox), status_entry,
 	                          FALSE, FALSE, 0, GTK_PACK_START);
-	gtk_box_set_child_packing(GTK_BOX(vbox), hpaned,
-	                          TRUE, TRUE, 0, GTK_PACK_START);
 	gtk_box_set_child_packing(GTK_BOX(vbox), toolbox,
 	                          FALSE, FALSE, 0, GTK_PACK_START);
 	/* setting up signals */
