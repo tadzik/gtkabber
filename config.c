@@ -209,10 +209,13 @@ void
 lua_msg_callback(const gchar *j, const gchar *m)
 {
 	lua_getglobal(lua, "message_cb");
-	if(lua_isnil(lua, 1))
+	if(lua_isnil(lua, 1)) {
+		lua_pop(lua, 1);
 		return;
+	}
 	if(!lua_isfunction(lua, 1)) {
 		ui_status_print("lua error: message_cb is not a function!\n");
+		lua_pop(lua, 1);
 		return;
 	}
 	lua_pushstring(lua, j);
@@ -228,10 +231,13 @@ void
 lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 {
 	lua_getglobal(lua, "presence_cb");
-	if(lua_isnil(lua, 1))
+	if(lua_isnil(lua, 1)) {
+		lua_pop(lua, 1);
 		return;
+	}
 	if(!lua_isfunction(lua, 1)) {
 		ui_status_print("lua error: presence_cb is not a function!\n");
+		lua_pop(lua, 1);
 		return;
 	}
 	lua_pushstring(lua, j);

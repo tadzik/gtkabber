@@ -103,8 +103,11 @@ destroy(GtkWidget *widget, gpointer data)
 static void
 focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 {
-	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
+	g_printerr("Got focus\n");
+	if(gtk_window_get_urgency_hint(GTK_WINDOW(window))) {
+		g_printerr("Removing wm urgency\n");
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
+	}
 } /* focus_cb */
 
 static void
@@ -166,6 +169,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 				ui_status_print("Config file reloaded\n");
 				config_reload();
 			} else {
+				g_printerr("Getting focus on roster\n");
 				gtk_widget_grab_focus(rview);
 			}
 			break;
@@ -176,7 +180,10 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 				gtk_widget_grab_focus(status_cbox);
 			break;
 		case 116: /* t */
-			gtk_widget_grab_focus(nbook);
+			{
+				Chattab *tab = get_active_tab();
+				gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
+			}
 			break;
 		}
 	}
@@ -209,7 +216,12 @@ setup_cbox(GtkWidget *cbox)
 static void
 set_wm_urgency(void)
 {
-	if(gtk_window_is_active(GTK_WINDOW(window))) return;
+	if(gtk_window_is_active(GTK_WINDOW(window))) {
+		g_printerr("Window alredy active, not setting wm urgency\n");
+		return;
+	} else {
+		g_printerr("Window not active, setting wm urgency\n");
+	}
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
@@ -267,6 +279,7 @@ static void
 tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 {	
 	Chattab *tab = get_tab_content(n);
+	g_printerr("Switching to tab %s (%d)\n", tab->title, n);
 	if(tab->jid) {
 		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
 		gtk_widget_grab_focus(tab->entry);

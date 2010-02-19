@@ -45,4 +45,7 @@ clean:
 	@find . -name '*.o' -delete
 	@find . -name main -delete
 
+run:
+	LM_DEBUG="net" ./main
+
 # DO NOT DELETE
