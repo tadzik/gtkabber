@@ -42,6 +42,8 @@ static void load_iconset(void);
 static gint match_entry_by_iter(gconstpointer, gconstpointer);
 static void row_clicked_cb(GtkTreeView *, GtkTreePath *,
                            GtkTreeViewColumn *, gpointer);
+static gboolean tooltip_cb(GtkWidget *, gint, gint,
+                           gboolean, GtkTooltip *, gpointer);
 void ui_roster_add(const gchar *, const gchar *, const gchar *);
 void ui_roster_cleanup(void);
 void ui_roster_offline(void);
@@ -49,22 +51,6 @@ GtkWidget *ui_roster_setup(void);
 void ui_roster_toggle_offline(void);
 void ui_roster_update(const gchar *);
 /************/
-
-static gint
-get_pixbuf_priority(GdkPixbuf *p)
-{
-	/* Called by compare_rows when sorting entries.
-	 * Determines which row is "more important", so the "free for chat" guys
-	 * are kept on top of the list, and so on and so forth */
-	if(p == ffc_icon) return 0;
-	if(p == online_icon) return 1;
-	if(p == away_icon) return 2;
-	if(p == xa_icon) return 3;
-	if(p == dnd_icon) return 4;
-	if(p == offline_icon) return 5;
-	/* groups will get lower than absent guys, when using "show offline" view */
-	else return 6;
-} /* get_pixbuf_priority */
 
 static gint
 compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
@@ -105,6 +91,22 @@ filter_func(GtkTreeModel *m, GtkTreeIter *i, gpointer u)
 		return 0;
 	return 1;
 }
+
+static gint
+get_pixbuf_priority(GdkPixbuf *p)
+{
+	/* Called by compare_rows when sorting entries.
+	 * Determines which row is "more important", so the "free for chat" guys
+	 * are kept on top of the list, and so on and so forth */
+	if(p == ffc_icon) return 0;
+	if(p == online_icon) return 1;
+	if(p == away_icon) return 2;
+	if(p == xa_icon) return 3;
+	if(p == dnd_icon) return 4;
+	if(p == offline_icon) return 5;
+	/* groups will get lower than absent guys, when using "show offline" view */
+	else return 6;
+} /* get_pixbuf_priority */
 
 static GdkPixbuf *
 load_icon(const gchar *status)
@@ -171,17 +173,48 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 	gtk_tree_model_get_iter(gtk_tree_view_get_model(t), &iter, p);
 	entry = g_slist_find_custom(entries, (void *)&iter, match_entry_by_iter);
 	if(entry) {
-		const gchar *resname;
+		Resource *res;
 		sb = (UiBuddy *)entry->data;
-		resname = xmpp_roster_get_best_resname(sb->jid);
-		if(resname == NULL)
+		res = xmpp_roster_get_best_resource(sb->jid);
+		if(res == NULL)
 			jid = g_strdup(sb->jid);
 		else
-			jid = g_strdup_printf("%s/%s", sb->jid, resname);
+			jid = g_strdup_printf("%s/%s", sb->jid, res->name);
 		ui_create_tab(jid, sb->name, 1);
 		g_free(jid);
 	}
 } /* row_clicked_cb */
+
+static gboolean
+tooltip_cb(GtkWidget *w, gint x, gint y, gboolean k, GtkTooltip *t, gpointer p)
+{
+	GtkTreeIter iter;
+	GSList *entry;
+	if(gtk_tree_view_get_tooltip_context(GTK_TREE_VIEW(view),
+	                                     &x, &y, k, NULL, NULL, &iter)) {
+		entry = g_slist_find_custom(entries, (void *)&iter,
+		                            match_entry_by_iter);
+		if(entry) {
+			UiBuddy *sb;
+			Resource *res;
+			GString *text;
+			sb = (UiBuddy *)entry->data;
+			res = xmpp_roster_get_best_resource(sb->jid);
+			text = g_string_new(NULL);
+			g_string_append_printf(text, "<b>Jid</b>: %s", sb->jid);
+			if(res) {
+				if(res->status_msg)
+					g_string_append_printf(text,
+						"\n<b>Status message:</b> %s",
+						res->status_msg);
+			}
+			gtk_tooltip_set_markup(t, text->str);
+			g_string_free(text, TRUE);
+			return TRUE;
+		}
+	}
+	return FALSE;
+} /* tooltip_cb */
 
 void
 ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
@@ -307,6 +340,10 @@ ui_roster_setup(void)
 	gtk_tree_sortable_set_sort_func(sort, COL_STATUS, compare_rows,
 	                                NULL, NULL);
 	gtk_tree_sortable_set_sort_column_id(sort, COL_STATUS, GTK_SORT_ASCENDING);
+	/* tooltips */
+	g_object_set(G_OBJECT(view), "has-tooltip", TRUE, NULL);
+	g_signal_connect(G_OBJECT(view), "query-tooltip",
+	                 G_CALLBACK(tooltip_cb), NULL);
 	/* signals */
 	g_signal_connect(G_OBJECT(view), "row-activated", 
 	                 G_CALLBACK(row_clicked_cb), NULL);
@@ -346,8 +383,7 @@ ui_roster_update(const char *jid)
 		return;
 	}
 	/* looking for the best resource */
-	res = xmpp_roster_find_res_by_name(xmpp_roster_find_by_jid(jid),
-	                                   xmpp_roster_get_best_resname(jid));
+	res = xmpp_roster_get_best_resource(jid);
 	if(!res) {
 		g_printerr("ui_roster_update: found no resource to update %s, "
 		           "assuming contact is unavailable\n", jid);

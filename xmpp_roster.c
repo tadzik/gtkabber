@@ -11,7 +11,7 @@ void xmpp_roster_add_resource(Buddy *, Resource *);
 void xmpp_roster_cleanup();
 Buddy *xmpp_roster_find_by_jid(const char *);
 Resource *xmpp_roster_find_res_by_name(Buddy *, const char *);
-const char *xmpp_roster_get_best_resname(const char *);
+Resource *xmpp_roster_get_best_resource(const char *);
 void xmpp_roster_parse_query(LmConnection *, LmMessageNode *);
 void xmpp_roster_request(LmConnection *);
 /*************/
@@ -72,15 +72,15 @@ xmpp_roster_find_by_jid(const char *jid)
 	return NULL;
 } /* xmpp_roster_find_by_jid */
 
-const char *
-xmpp_roster_get_best_resname(const char *jid)
+Resource *
+xmpp_roster_get_best_resource(const char *jid)
 {
 	Buddy *sb;
 	GSList *elem;
 	Resource *best = NULL;
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
-		g_printerr("xmpp_roster_get_best_resname: buddy %s not found",
+		g_printerr("xmpp_roster_get_best_resource: buddy %s not found",
 		           jid);
 		return NULL;
 	}
@@ -90,8 +90,8 @@ xmpp_roster_get_best_resname(const char *jid)
 		if(!best || best->priority < ed->priority)
 			best = elem->data;
 	}
-	return best->name;
-} /* xmpp_roster_get_best_resname */
+	return best;
+} /* xmpp_roster_get_best_resource */
 
 void
 xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
