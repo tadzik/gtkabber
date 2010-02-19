@@ -93,7 +93,7 @@ click_cb(GtkWidget *w, GdkEventButton *e, gpointer p)
 	GSList *entry;
 	UiBuddy *sb;
 	char *starr[] = { "Free for chat", "Online", "Away",
-	                  "Not available", "Do not disturb", "Offline" };
+	                  "Not available", "Do not disturb"/*, "Offline"*/ };
 	int i;
 	if(e->button != 3)
 		return FALSE;
@@ -108,7 +108,7 @@ click_cb(GtkWidget *w, GdkEventButton *e, gpointer p)
 	sb = (UiBuddy *)entry->data;
 	/* statuses submenu */
 	statuses = gtk_menu_new();
-	for(i = 0; i < 6; i++) {
+	for(i = 0; i < 5; i++) {
 		menuitem = gtk_menu_item_new_with_label(starr[i]);
 		gtk_menu_shell_append(GTK_MENU_SHELL(statuses), menuitem);
 		g_signal_connect(G_OBJECT(menuitem), "activate",
