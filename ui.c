@@ -28,6 +28,7 @@ static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
+static void status_changed(GtkEntry *, gpointer);
 static void subscr_response_cb(GtkButton *, gpointer);
 static void tab_entry_handler(GtkWidget *, gpointer);
 static void tab_notify(Chattab *);
@@ -226,6 +227,12 @@ set_wm_urgency(void)
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
 } /* set_wm_urgency */
+
+static void
+status_changed(GtkEntry *e, gpointer p)
+{
+	xmpp_send_status(NULL, ui_get_status());
+}
 
 static void
 subscr_response_cb(GtkButton *b, gpointer t)
@@ -441,7 +448,7 @@ ui_setup(int *argc, char **argv[])
 	g_signal_connect(G_OBJECT(window), "destroy",
 	                 G_CALLBACK(destroy), NULL);
 	g_signal_connect(G_OBJECT(status_entry), "activate",
-	                 G_CALLBACK(xmpp_send_status), NULL);
+	                 G_CALLBACK(status_changed), NULL);
 	g_signal_connect(G_OBJECT(window), "key-press-event",
 	                 G_CALLBACK(keypress_cb), NULL);
 	g_signal_connect(G_OBJECT(window), "focus-in-event",
