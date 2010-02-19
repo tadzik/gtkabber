@@ -123,13 +123,13 @@ xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
 			                      strchr(entry->jid, '@') - entry->jid);
 		}
 		attr = lm_message_node_get_attribute(item, "subscription");
-		if(g_strcmp0(attr, "both") == 0)
+		if(attr[0] == 'b')
 			entry->subscription = BOTH;
-		else if(g_strcmp0(attr, "to") == 0)
+		else if(attr[0] == 't')
 			entry->subscription = TO;
-		else if(g_strcmp0(attr, "from") == 0)
+		else if(attr[0] == 'f')
 			entry->subscription = FROM;
-		else if(g_strcmp0(attr, "none") == 0)
+		else if(attr[0] == 'n')
 			entry->subscription = NONE;
 		/* "remove" has alredy been covered */
 		node = lm_message_node_get_child(item, "group");

@@ -261,10 +261,10 @@ parse_status_presence(LmMessage *m)
 	g_printerr("%d...", __LINE__);
 	if((child = lm_message_node_get_child(m->node, "show"))) {
 		buf = lm_message_node_get_value(child);
-		if(!g_strcmp0(buf, "away")) res->status = STATUS_AWAY;
-		else if(!g_strcmp0(buf, "chat")) res->status = STATUS_FFC;
-		else if(!g_strcmp0(buf, "xa")) res->status = STATUS_XA;
-		else if(!g_strcmp0(buf, "dnd")) res->status = STATUS_DND;
+		if(buf[0] == 'a') res->status = STATUS_AWAY;
+		else if(buf[0] == 'f') res->status = STATUS_FFC;
+		else if(buf[0] == 'x') res->status = STATUS_XA;
+		else if(buf[0] == 'd') res->status = STATUS_DND;
 		else {
 			ui_status_print("Invalid <show> in presence from %s (%s), ignoring\n",
 			                jid, buf);
