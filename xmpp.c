@@ -262,7 +262,7 @@ parse_status_presence(LmMessage *m)
 	if((child = lm_message_node_get_child(m->node, "show"))) {
 		buf = lm_message_node_get_value(child);
 		if(buf[0] == 'a') res->status = STATUS_AWAY;
-		else if(buf[0] == 'f') res->status = STATUS_FFC;
+		else if(buf[0] == 'c') res->status = STATUS_FFC;
 		else if(buf[0] == 'x') res->status = STATUS_XA;
 		else if(buf[0] == 'd') res->status = STATUS_DND;
 		else {
