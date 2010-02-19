@@ -75,7 +75,7 @@ append_to_tab(Chattab *t, const gchar *s)
 static void
 cbox_changed_cb(GtkComboBox *e, gpointer p)
 {
-	xmpp_set_status(ui_get_status());
+	xmpp_send_status(NULL, ui_get_status());
 } /* cbox_changed_cb */
 
 static void
@@ -441,7 +441,7 @@ ui_setup(int *argc, char **argv[])
 	g_signal_connect(G_OBJECT(window), "destroy",
 	                 G_CALLBACK(destroy), NULL);
 	g_signal_connect(G_OBJECT(status_entry), "activate",
-	                 G_CALLBACK(xmpp_set_status), NULL);
+	                 G_CALLBACK(xmpp_send_status), NULL);
 	g_signal_connect(G_OBJECT(window), "key-press-event",
 	                 G_CALLBACK(keypress_cb), NULL);
 	g_signal_connect(G_OBJECT(window), "focus-in-event",
@@ -462,7 +462,7 @@ void
 ui_set_status_msg(const char *m)
 {
 	gtk_entry_set_text(GTK_ENTRY(status_entry), m);
-	xmpp_set_status(ui_get_status());
+	xmpp_send_status(NULL, ui_get_status());
 } /* ui_set_status_msg */
 
 void

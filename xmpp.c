@@ -27,8 +27,8 @@ static gboolean reconnect(void);
 static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
 void xmpp_cleanup(void);
 void xmpp_init(void);
-void xmpp_set_status(XmppStatus);
 void xmpp_send_message(const char *, const char *);
+void xmpp_send_status(const gchar *, XmppStatus);
 void xmpp_subscribe(const gchar *, const gchar *, const gchar *);
 void xmpp_subscr_response(gchar *, gint);
 static gchar *xmpp_status_to_str(XmppStatus);
@@ -436,7 +436,7 @@ xmpp_send_message(const char *to, const char *msg)
 }
 
 void
-xmpp_set_status(XmppStatus s)
+xmpp_send_status(const gchar *to, XmppStatus s)
 {
 	LmMessage *p;
 	GError *err = NULL;
@@ -454,7 +454,7 @@ xmpp_set_status(XmppStatus s)
 	}
 	conf_priority = g_strdup_printf("%d\n", get_settings(PRIORITY).i);
 	status_msg = ui_get_status_msg();
-	p = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
+	p = lm_message_new_with_sub_type(to, LM_MESSAGE_TYPE_PRESENCE,
 	                                 (s == STATUS_OFFLINE)
 	                                 	? LM_MESSAGE_SUB_TYPE_UNAVAILABLE
 	                                 	: LM_MESSAGE_SUB_TYPE_AVAILABLE);
@@ -471,7 +471,7 @@ xmpp_set_status(XmppStatus s)
 		g_error_free(err);
 	}
 	lm_message_unref(p);
-} /* xmpp_set_status */
+} /* xmpp_send_status */
 
 static char *
 xmpp_status_to_str(XmppStatus status)
@@ -547,5 +547,5 @@ void
 xmpp_roster_parsed_cb(void)
 {
 	if(!initial_presence_sent)
-		xmpp_set_status(ui_get_status());
+		xmpp_send_status(NULL, ui_get_status());
 }

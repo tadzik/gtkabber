@@ -4,6 +4,7 @@
 #include "config.h"
 #include "types.h"
 #include "ui.h"
+#include "xmpp.h"
 #include "xmpp_roster.h"
 
 /* Here goes everything related to roster widget in the user interface
@@ -35,8 +36,10 @@ static GdkPixbuf *dnd_icon;
 /* functions*/
 static gint compare_rows(GtkTreeModel *, GtkTreeIter *,
                          GtkTreeIter *, gpointer);
+static gboolean click_cb(GtkWidget *, GdkEventButton *, gpointer);
 static gboolean filter_func(GtkTreeModel *, GtkTreeIter *, gpointer);
 static gint get_pixbuf_priority(GdkPixbuf *);
+static void item_clicked(GtkMenuItem *, gpointer);
 static GdkPixbuf *load_icon(const gchar *);
 static void load_iconset(void);
 static gint match_entry_by_iter(gconstpointer, gconstpointer);
@@ -82,6 +85,47 @@ compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
 } /* compare_rows */
 
 static gboolean
+click_cb(GtkWidget *w, GdkEventButton *e, gpointer p)
+{
+	GtkTreePath *path;
+	GtkTreeIter iter;
+	GtkWidget *menu, *menuitem, *statuses;
+	GSList *entry;
+	UiBuddy *sb;
+	char *starr[] = { "Free for chat", "Online", "Away",
+	                  "Not available", "Do not disturb", "Offline" };
+	int i;
+	if(e->button != 3)
+		return FALSE;
+	if(!gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(view), e->x, e->y,
+	                                  &path, NULL, NULL, NULL))
+		return FALSE;
+	gtk_tree_model_get_iter(gtk_tree_view_get_model(GTK_TREE_VIEW(view)),
+	                                                &iter, path);
+	entry = g_slist_find_custom(entries, (void *)&iter, match_entry_by_iter);
+	if(!entry)
+		return FALSE;
+	sb = (UiBuddy *)entry->data;
+	/* statuses submenu */
+	statuses = gtk_menu_new();
+	for(i = 0; i < 6; i++) {
+		menuitem = gtk_menu_item_new_with_label(starr[i]);
+		gtk_menu_shell_append(GTK_MENU_SHELL(statuses), menuitem);
+		g_signal_connect(G_OBJECT(menuitem), "activate",
+		                 G_CALLBACK(item_clicked), (void *)sb->jid);
+		gtk_widget_show(menuitem);
+	}
+	/*******************/
+	menu = gtk_menu_new();
+	menuitem = gtk_menu_item_new_with_label("Send status");
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menuitem), statuses);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+	gtk_widget_show(menuitem);
+	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 3, e->time);
+	return FALSE;
+} /* click_cb */
+
+static gboolean
 filter_func(GtkTreeModel *m, GtkTreeIter *i, gpointer u)
 {
 	GdkPixbuf *p;
@@ -107,6 +151,22 @@ get_pixbuf_priority(GdkPixbuf *p)
 	/* groups will get lower than absent guys, when using "show offline" view */
 	else return 6;
 } /* get_pixbuf_priority */
+
+static void
+item_clicked(GtkMenuItem *m, gpointer p)
+{
+	XmppStatus st;
+	const char *text = gtk_menu_item_get_label(m);
+	/* it may look dumb, but it's a serious optimization :) */
+	if(text[2] == 'e') st = STATUS_FFC;
+	else if(text[2] == 'l') st = STATUS_ONLINE;
+	else if(text[2] == 'a') st = STATUS_AWAY;
+	else if(text[2] == 't') st = STATUS_XA;
+	else if(text[2] == ' ') st = STATUS_DND;
+	else st = STATUS_OFFLINE;
+	ui_status_print("Sending status '%s' to %s\n", text, (char *)p);
+	xmpp_send_status((char *)p, st);
+} /* item_clicked */
 
 static GdkPixbuf *
 load_icon(const gchar *status)
@@ -342,11 +402,13 @@ ui_roster_setup(void)
 	gtk_tree_sortable_set_sort_column_id(sort, COL_STATUS, GTK_SORT_ASCENDING);
 	/* tooltips */
 	g_object_set(G_OBJECT(view), "has-tooltip", TRUE, NULL);
-	g_signal_connect(G_OBJECT(view), "query-tooltip",
-	                 G_CALLBACK(tooltip_cb), NULL);
 	/* signals */
 	g_signal_connect(G_OBJECT(view), "row-activated", 
 	                 G_CALLBACK(row_clicked_cb), NULL);
+	g_signal_connect(G_OBJECT(view), "query-tooltip",
+	                 G_CALLBACK(tooltip_cb), NULL);
+	g_signal_connect(G_OBJECT(view), "button-press-event",
+	                 G_CALLBACK(click_cb), NULL);
 	/* returning GtkTreeView so ui_setup can put it somewhere in the window */
 	return view;
 } /* roster_setup */

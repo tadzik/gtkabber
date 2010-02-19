@@ -5,7 +5,7 @@
 void xmpp_cleanup(void);
 void xmpp_init(void);
 void xmpp_send_message(const gchar *, const gchar *);
-void xmpp_set_status(XmppStatus);
+void xmpp_send_status(const gchar *, XmppStatus);
 void xmpp_subscribe(const gchar *, const gchar *, const gchar *);
 void xmpp_subscr_response(gchar *, gint);
 void xmpp_roster_parsed_cb(void);
