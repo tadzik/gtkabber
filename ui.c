@@ -196,6 +196,8 @@ static void
 scroll_tab_down(Chattab *tab)
 {
 	GtkAdjustment *adj;
+	gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(tab->tview), tab->mk,
+	                             0.0, FALSE, 0.0, 0.0);
 	adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(tab->scrolled));
 	gtk_adjustment_set_value(adj, adj->upper);
 } /* scroll_tab_down */
@@ -325,29 +327,31 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	 * in the roster (ui_roster.c), or when the new message arrives (xmpp.c,
 	 * xmpp_message_handler), if supplied jid is NULL, we're creating
 	 * a status_tab */
-	GtkWidget *tview;
 	Chattab *tab;
 	tab = g_malloc(sizeof(Chattab));
-	if(jid == NULL)
+	if(jid == NULL) {
+		tab->jid = NULL;
 		status_tab = tab;
+	}
 	else
 		tab->jid = g_strdup(jid);
 	tab->title = g_strdup(title);
 	/* creating GtkLabel for the tab title */
 	tab->label = gtk_label_new(tab->title);
 	/* creating GtkTextView for status messages */
-	tview = gtk_text_view_new();
-	tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tview));
-	gtk_text_view_set_editable(GTK_TEXT_VIEW(tview), FALSE);
-	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(tview), FALSE);
-	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tview), GTK_WRAP_WORD);
+	tab->tview = gtk_text_view_new();
+	tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tab->tview));
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(tab->tview), FALSE);
+	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(tab->tview), FALSE);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tab->tview), GTK_WRAP_WORD);
+	tab->mk = gtk_text_buffer_get_mark(tab->buffer, "insert");
 	/* we're putting this in a scrolled window */
 	tab->scrolled = gtk_scrolled_window_new(NULL, NULL);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tab->scrolled),
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
-	                                      tview);
+	                                      tab->tview);
 	/* setting up the entry field */
 	if(jid) {
 		tab->entry = gtk_entry_new();

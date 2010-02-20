@@ -91,9 +91,11 @@ typedef struct {
 	gchar *jid;
 	gchar *title;
 	GtkTextBuffer *buffer;
+	GtkTextMark *mk;
 	GtkWidget *entry;
 	GtkWidget *label;
 	GtkWidget *scrolled;
+	GtkWidget *tview;
 	GtkWidget *vbox;
 } Chattab;
 #endif
