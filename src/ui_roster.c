@@ -182,6 +182,8 @@ load_icon(const gchar *status)
 	path = g_strdup_printf("icons/%s.png", status);
 	new = gdk_pixbuf_new_from_file(path, &err);
 	if (new == NULL) {
+		g_printerr("path: %s\n", path);
+		g_printerr("message: %s\n", err->message);
 		ui_status_print("Error loading iconset %s: %s\n", path, err->message);
 		g_error_free(err);
 	}

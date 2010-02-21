@@ -417,12 +417,15 @@ ui_setup(int *argc, char **argv[])
 	toolbox = gtk_vbox_new(FALSE, 0);
 	leftbox = gtk_vbox_new(FALSE, 0);
 	nbook = gtk_notebook_new();
-	rview = ui_roster_setup();
 	rwin = gtk_scrolled_window_new(NULL, NULL);
 	status_cbox = gtk_combo_box_new_text();
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	vbox = gtk_vbox_new(FALSE, 0);
+	/* setting up status tab
+	 * needs to be almost first to make room for error messages */
+	ui_create_tab(NULL, "Status", 0);
 	/* setting up the more exciting ones */
+	rview = ui_roster_setup();
 	setup_cbox(status_cbox);
 	status_entry = gtk_entry_new();
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(nbook), TRUE);
@@ -430,8 +433,6 @@ ui_setup(int *argc, char **argv[])
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);
 	gtk_window_set_title(GTK_WINDOW(window), "gtkabber");
-	/* setting up status tab */
-	ui_create_tab(NULL, "Status", 0);
 	/* packing */
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), rview);
 	gtk_container_add(GTK_CONTAINER(window), vbox);

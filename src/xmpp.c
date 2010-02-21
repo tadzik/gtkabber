@@ -534,7 +534,6 @@ xmpp_subscr_response(gchar *j, gint s)
 char *
 xmpp_status_readable(XmppStatus st)
 {
-	return "foobar";
 	if(st == STATUS_ONLINE) return "online";
 	else if(st == STATUS_FFC) return "free for chat";
 	else if(st == STATUS_AWAY) return "away";
