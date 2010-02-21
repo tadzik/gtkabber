@@ -27,6 +27,7 @@ static int getint(const gchar *);
 static gchar *getstr(const gchar *);
 Option get_settings(Settings);
 static void init_settings(void);
+static void loadactions(void);
 static void loadfile(void);
 static void loadlib(void);
 void lua_msg_callback(const gchar *, const gchar *);
@@ -37,6 +38,7 @@ void lua_pres_callback(const gchar *, const gchar *, const gchar *);
 /* vars */
 lua_State *lua;
 Option settings[NUM_SETTINGS];
+GArray *actions;
 /********/
 
 void
@@ -48,6 +50,10 @@ config_cleanup(void)
 		g_free(settings[i].s);
 	}
 	lua_close(lua);
+	for(i=0; i < (int)actions->len; i++) {
+		g_free(g_array_index(actions, gchar *, i));
+	}
+	g_array_free(actions, TRUE);
 }
 
 void
@@ -58,11 +64,13 @@ config_init(void)
 	init_settings();
 	loadfile();
 	loadlib();
+	actions = g_array_new(FALSE, FALSE, sizeof(gchar *));
+	loadactions();
 } /* config_parse_rcfile */
 
 void config_reload(void)
 {
-	lua_close(lua);
+	config_cleanup();
 	config_init();
 } /* config_reload */
 
@@ -99,8 +107,8 @@ fun_sendstatus(lua_State *l)
 	else if(type[0] == 'x') st = STATUS_XA;
 	else if(type[0] == 'd') st = STATUS_DND;
 	else st = STATUS_OFFLINE;
-/*	ui_status_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
-	                (to) ? to : "the server");*/
+	ui_status_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
+	                (to) ? to : "the server");
 	xmpp_send_status(to, st);
 	return 0;
 } /* fun_sendstatus */
@@ -153,11 +161,48 @@ init_settings(void)
 	for(i = 0; i != USE_SSL; i++) {
 		settings[i].s = NULL;
 	}
-	settings[RESOURCE].s = g_strdup("gtkabber");
 	for(i = USE_SSL; i != NUM_SETTINGS; i++) {
 		settings[i].i = 0;
 	}
 } /* init_settings */
+
+static void
+loadactions(void)
+{
+	GString *index = g_string_new(NULL);
+	int i;
+	lua_getglobal(lua, "actions");
+	if(!lua_istable(lua, -1)) {
+		lua_pop(lua, 1);
+		return;
+	}
+	for (i=1; ; i++) {
+		gchar *name;
+		g_string_printf(index, "%d\n", i);
+		lua_pushstring(lua, index->str);
+		lua_gettable(lua, -2);
+		if(lua_isnil(lua, -1))
+			break;
+		if(!lua_istable(lua, -1)) {
+			ui_status_print("Lua error: actions[%s] not an array\n", index);
+			lua_pop(lua, 1);
+			continue;
+		}
+
+		lua_pushstring(lua, "name");
+		lua_gettable(lua, -2);
+		if(!lua_isstring(lua, -1)) {
+			ui_status_print("Lua error: actions[%s].name not a string\n", index);
+			lua_pop(lua, 1);
+			continue;
+		}
+		name = g_strdup(lua_tostring(lua, -1));
+		lua_pop(lua, 1);
+		g_array_append_val(actions, name);
+	}
+	lua_pop(lua, 1); /* popping out "actions" array */
+	g_string_free(index, TRUE);
+} /* loadactions */
 
 static void
 loadfile(void)
@@ -170,6 +215,7 @@ loadfile(void)
 	if(luaL_loadfile(lua, path) || lua_pcall(lua, 0, 0, 0)) {
 		ui_status_print("Couldn't parse the configuration file %s: %s",
 		                lua_tostring(lua, -1));
+		lua_pop(lua, 1);
 		return;
 	}
 
@@ -248,7 +294,7 @@ lua_msg_callback(const gchar *j, const gchar *m)
 	if(lua_pcall(lua, 2, 0, 0)) {
 		ui_status_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
-		lua_pop(lua, -1);
+		lua_pop(lua, 1);
 	}
 } /* lua_msg_callback */
 
@@ -268,7 +314,7 @@ lua_post_connect(void)
 	if(lua_pcall(lua, 0, 0, 0)) {
 		ui_status_print("lua: error running post_connect: %s\n",
 		                lua_tostring(lua, -1));
-		lua_pop(lua, -1);
+		lua_pop(lua, 1);
 	}
 
 }
@@ -292,6 +338,6 @@ lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 	if(lua_pcall(lua, 3, 0, 0)) {
 		ui_status_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
-		lua_pop(lua, -1);
+		lua_pop(lua, 1);
 	}
 }
