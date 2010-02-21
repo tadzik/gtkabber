@@ -68,7 +68,7 @@ append_to_tab(Chattab *t, const gchar *s)
 	gtk_text_buffer_get_end_iter(t->buffer, &i);
 	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S]", localtime(&now));
 	str = g_strdup_printf("%s %s", tstamp, s);
-	gtk_text_buffer_insert(t->buffer, &i, str, strlen(str));
+	gtk_text_buffer_insert(t->buffer, &i, str, -1);
 	g_free(str);
 	scroll_tab_down(t);
 } /* append_to_tab */
