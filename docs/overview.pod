@@ -1,0 +1,35 @@
+=head1 Gtkabber - overview
+
+=head2 Preface
+
+Gtkabber aims to provide useful, configurable and scriptable xmpp client. Blah blah blah, isn't it? In fact, I'm writing it for myself.
+I didn't like all those multi-windowed ones, unusable without a mouse.
+mcabber is really nice, yet I wanted to stare at the avatars of the girls in my roster.
+So I decided to have a go with Gtk. Choosed loudmouth for xmpp protocol handling, later added lua, for I wanted powerful scripting.
+And... ta-dah, here we are. You may want to like it, so here's the documentation to help you to learn your way around. Enjoy!
+
+=head2 Goals
+
+Alright, but what for. Ain't there any nice xmpp clients? Of course they are, yet I didn't like any single one.
+So why would you want to use Gtkabber? Well, I can think of a number of reasons:
+
+=head4 B<*> You don't like dozens of windows floating around and popping up every once a while
+
+=head4 B<*> You'd like to configure I<Everything>. Or at least most of the things.
+
+=head4 B<*> You like scripting, You'd love to automate everything you can, use you own notification system, etc (that is where we shine :})
+
+=head4 B<*> You're not really fond of mouse, and you like to operate on your keyboard only. No problem!
+
+There may be more reasons, yet these are the ones which matter to I<me>.
+
+=head2 Current status
+
+Well, for sure it's not finished. Not everything which should be implemented is implemented. Goals are not yet fulfiled.
+There's much to do, yet you can do almost all the basic stuff. Chatting is ready, Handling and requesting subscriptions works fine,
+Lua scripting is in its basics, yet it's alredy fun :) (see 'scripting' document for details).
+
+=head2 What now?
+
+Read on :) 'building' document holds all the necessary information needed for making Gtkabber ready to use,
+'configuration' will tell you how to configure it for your needs, 'scripting' explains what you can really do with this lua stuff. Enjoy!

@@ -1,0 +1,68 @@
+=head1 Gtkabber - configuration
+
+=head2 Config file
+
+The config file is written in lua, and it lives in $HOME/.config/gtkabber.lua. It is written in lua, for all the scripting is done there.
+Don't worry, you don't need to know lua to write a damn config file! It's pretty straightforward, you will see.
+
+=head3 Example configuration
+
+ -- lines starting with two dashes are comments in lua
+ -- obligatory settings
+ server = "jabber.org"
+ jid = "johndoe@jabber.org"
+ passwd = "rememberMe"
+
+ -- everything else may be skipped, yet you might want to set it
+ resource = "gtkabber@home"
+ priority = 5
+
+ -- encryption settings: only one of those can be true (or none)
+ use_ssl = false
+ use_tls = true
+
+=head2 Config variables listing
+
+=over 4
+
+=item B<server> (string)
+
+the server you connect to
+
+=item B<port> (integer)
+
+the port your server is running on (default: 5223 for ssl connections, 5222 for not encrypted or tls)
+
+=item B<jid> (string)
+
+your jabber id
+
+=item B<passwd> (string)
+
+password to your server
+
+=item B<resource> (string)
+
+your resource (default: "gtkabber")
+
+=item B<priority> (integer)
+
+priority of your resource (default: 10)
+
+=item B<use_tls> (boolean)
+
+whether to use TLS for encryption (default: false)
+
+=item B<use_ssl> (boolean)
+
+whether to use SSL for encryption (default: the opposite of use_tls)
+
+=item B<case_sensitive_sorting> (true/false)
+
+whether to sort items in roster case-sensitive (default: false)
+
+=back
+
+=head2 Lua scripting
+
+Please refer to 'scripting' for more information about lua scripting in gtkabber.

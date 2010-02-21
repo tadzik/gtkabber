@@ -1,0 +1,58 @@
+=head1 Gtkabber - usage
+
+=head2 Interface
+
+Gtkabber's interface aims to be clean and simple, without much fuss. So we have a roster view on the left,
+status tab (and probably some chat tabs) on the right, the status-switching combobox under the roster view
+and a status message entry even lower.
+
+=head3 Setting your status
+
+Activate your combobox (click on it, or press C-s on your keyboard [see Keybindings for more details]),
+and just choose the one you want they are in such order, that the more chatty you are, the higher you should go.
+
+=head4 Settings a status message
+
+Activate the status entry (below status combobox), type your desired status and press enter. Done.
+
+=head4 Sending specific status to a buddy
+
+Right click on a buddy in a roster, and select a status you wish to send.
+
+=head3 Start chatting
+
+That's what you came here for, huh? Just select a buddy in the roster, a new tab will appear,
+in which you can type what you wish to say.
+
+=head4 Closing tabs
+
+No 'x' button, huh? Just press C-q (control + q) to close the active tab.
+
+=head3 Sending subsription request
+
+Press C-o to open the options bar, then click the "Subscribe" button to open another bar with some self-explanatory entries.
+C-o again if you wish not to see options again.
+
+=head2 Keybindings
+
+This is where we shine :) Here's the list:
+
+=over 4
+
+=item B<C-r> - (Control + r) focus the roster view. You can now select the buddy you want to chat with and press enter to begin
+
+=item B<C-M-r> - (Control + Alt + r) reload the config file
+
+=item B<C-t> - focus the tabs. Then just C-PgUp/PgDown to switch them
+
+=item B<C-q> - close the active tab
+
+=item B<C-s> - focus the status box to set your status
+
+=item B<C-M-s> - select the status message entry
+
+=item B<C-o> - open the options bar at the bottom of the screen
+
+=item B<C-h> - hide/show unavailable buddies in your roster
+
+=back

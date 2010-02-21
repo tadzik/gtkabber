@@ -1,0 +1,26 @@
+=head1 Gtkabber - building
+
+=head2 Dependencies
+
+You will gonna need:
+
+=over 4
+
+=item B<Gtk+>, 2.18 or higher (http://www.gtk.org/)
+
+=item B<Loudmouth> (http://groups.google.com/group/loudmouth-dev)
+
+=item B<Lua> (http://www.lua.org/)
+
+=back
+
+Nothing special in  here, everything should be available in your repository/ports tree/whatever.
+
+=head2 Lua issues on debian-based distros
+
+Debian-based linux distributions (ubuntu, debian itself, many more) has some strange issues with lua. While lua its pkgconfig .pc file to /usr/lib/pkgconfig by default, debian, for some reason, renames it to lua5.1.pc, which confuses Makefile.
+To fix it, just symlink /usr/lib/pkgconfig/lua5.1.pc to /usr/lib/pkgconfig/lua.pc, it will save you some pain in the future.
+
+=head2 Building
+
+Time to get your hands dirty. Move to gtkabber main directory and type 'make'. Howdy, how fast! Yes, you are done. You can now type 'make run' to get it running, yet it would be nice to configure it first. Refer to 'configuration' for more information.

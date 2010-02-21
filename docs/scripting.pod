@@ -1,0 +1,95 @@
+=head1 Gtkabber - scripting
+
+=head2 Lua
+
+Scripting in gtkabber is done in Lua (http://www.lua.org/). Lua is pretty clean and it's easy to use even if you don't really know it;
+you will see in the Examples section.
+
+Of course you can spend sime time learning it, it will not be wasted and will give you more opportunities.
+Take look at L<Programming in Lua|http://www.lua.org/pil/index.html> to learn your way around.
+
+=head2 Callbacks
+
+Callback are lua functions you write to react on certain Gtkabber events. Just write a function with a proper name and you're ready.
+
+=over 4
+
+=item B<message_cb (jid, msg)>
+
+called when you receive a message via xmpp. The 'jid' parameter contains the full jabber id (with resource) of the sender, while 'msg' keeps the message body
+
+=item B<presence_cb (jid, status, status_msg)>
+
+called on the presence arrival. Again, 'jid' contains the full jabber id (with resource), status is the current buddy's status type (online, free for chat, away, not available, do not disturb or offline), status_msg keeps the status message (e.g. "Gone fishing")
+
+=item B<post_connect ()>
+
+called after a successful connection. You can set initial status in here, send some greeting messages or something
+
+=back
+
+=head2 Gtkabber API
+
+Callback won't be as fun and useful if we had no gtkabber specific functions to call. All the functions are prefixed with 'gtkabber.' to avoid possible conflicts
+
+=over 4
+
+=item B<gtkabber.sendmsg (to, body)>
+
+send a message to somebody
+
+=item B<gtkabber.sendstatus (to, type)>
+
+send a status to a buddy or a server (provide nil as a 'to' parameter to set the status globally). Only the first character of the 'type' parameter is checked, so you don't really have to type much (though you can). Examples:
+
+=over 8
+
+=item B<* o>nline - online
+
+=item B<* f>fc - free for chat
+
+=item B<* a>way - away
+
+=item B<* x>a - not availble/extended away
+
+=item B<* d>nd - do not disturb
+
+=item B<*> anything else - offline
+
+=item
+
+=back
+
+=item B<gtkabber.print (txt)>
+
+print txt in a gtkabber's status tab
+
+=back
+
+More coming soon :)
+
+=head2 Examples
+
+=over 4
+
+ -- automagically respond to 'ping'
+ function message_cb (jid, msg) 
+ 	if string.find(msg, "ping") then
+ 		gtkabber.sendmsg(jid, "pong")
+ 		gtkabber.print("Automagically responded to ".. jid .."'s 'ping'\n")
+ 	end
+ end
+
+ -- keep an eye on your Juliet
+ 	function presence_cb (jid, status, status_msg)
+ 		if string.find(jid, "juliet@example.com") then
+ 		os.execute("xcowsay 'Juliet is coming!' &")
+ 	end
+ end
+
+ -- keep naggers away
+ function post_connect (jid, msg)
+ 	gtkabber.sendstatus("foobar@example.com", "dnd")
+ end
+
+=back
