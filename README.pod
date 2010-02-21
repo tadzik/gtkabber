@@ -1,0 +1,5 @@
+=head1 Gtkabber
+
+=head2 An xmpp client extensible in lua
+
+For more information consult docs/overview.pod

@@ -34,6 +34,10 @@ Callback won't be as fun and useful if we had no gtkabber specific functions to 
 
 =over 4
 
+=item B<gtkabber.print (txt)>
+
+print txt in a gtkabber's status tab
+
 =item B<gtkabber.sendmsg (to, body)>
 
 send a message to somebody
@@ -56,13 +60,7 @@ send a status to a buddy or a server (provide nil as a 'to' parameter to set the
 
 =item B<*> anything else - offline
 
-=item
-
 =back
-
-=item B<gtkabber.print (txt)>
-
-print txt in a gtkabber's status tab
 
 =back
 
