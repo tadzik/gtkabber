@@ -21,6 +21,7 @@ void config_init(void);
 void config_reload(void);
 static int fun_print(lua_State *);
 static int fun_sendmsg(lua_State *);
+static int fun_sendstatus(lua_State *);
 static int getbool(const gchar *);
 static int getint(const gchar *);
 static gchar *getstr(const gchar *);
@@ -29,6 +30,7 @@ static void init_settings(void);
 static void loadfile(void);
 static void loadlib(void);
 void lua_msg_callback(const gchar *, const gchar *);
+void lua_post_connect(void);
 void lua_pres_callback(const gchar *, const gchar *, const gchar *);
 /*************/
 
@@ -83,6 +85,25 @@ fun_sendmsg(lua_State *l)
 	xmpp_send_message(to, body);
 	return 0;
 } /* fun_sendmsg */
+
+static int
+fun_sendstatus(lua_State *l)
+{
+	const gchar *to, *type;
+	XmppStatus st;
+	to = lua_tostring(l, 1);
+	type = lua_tostring(l, 2);
+	if(type[0] == 'o') st = STATUS_ONLINE;
+	else if(type[0] == 'f') st = STATUS_FFC;
+	else if(type[0] == 'a') st = STATUS_AWAY;
+	else if(type[0] == 'x') st = STATUS_XA;
+	else if(type[0] == 'd') st = STATUS_DND;
+	else st = STATUS_OFFLINE;
+/*	ui_status_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
+	                (to) ? to : "the server");*/
+	xmpp_send_status(to, st);
+	return 0;
+} /* fun_sendstatus */
 
 static int
 getbool(const gchar *o)
@@ -193,9 +214,13 @@ static void loadlib(void)
 	 * then we set it global, so one can use it in lua scripts
 	 * like `gtkabber.sendmsg(blah, blah)` */
 	lua_newtable(lua);
-	/* fun_sendmsg as "sendmsg" */
+
 	lua_pushstring(lua, "sendmsg");
 	lua_pushcfunction(lua, fun_sendmsg);
+	lua_settable(lua, -3);
+
+	lua_pushstring(lua, "sendstatus");
+	lua_pushcfunction(lua, fun_sendstatus);
 	lua_settable(lua, -3);
 
 	lua_pushstring(lua, "print");
@@ -214,7 +239,7 @@ lua_msg_callback(const gchar *j, const gchar *m)
 		return;
 	}
 	if(!lua_isfunction(lua, 1)) {
-		ui_status_print("lua error: message_cb is not a function!\n");
+		ui_status_print("lua error: 'message_cb' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
 	}
@@ -228,6 +253,27 @@ lua_msg_callback(const gchar *j, const gchar *m)
 } /* lua_msg_callback */
 
 void
+lua_post_connect(void)
+{
+	lua_getglobal(lua, "post_connect");
+	if(lua_isnil(lua, 1)) {
+		lua_pop(lua, 1);
+		return;
+	}
+	if(!lua_isfunction(lua, 1)) {
+		ui_status_print("lua error: 'post_connect' is not a function!\n");
+		lua_pop(lua, 1);
+		return;
+	}
+	if(lua_pcall(lua, 0, 0, 0)) {
+		ui_status_print("lua: error running post_connect: %s\n",
+		                lua_tostring(lua, -1));
+		lua_pop(lua, -1);
+	}
+
+}
+
+void
 lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 {
 	lua_getglobal(lua, "presence_cb");
@@ -236,7 +282,7 @@ lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 		return;
 	}
 	if(!lua_isfunction(lua, 1)) {
-		ui_status_print("lua error: presence_cb is not a function!\n");
+		ui_status_print("lua error: 'presence_cb' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
 	}

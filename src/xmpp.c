@@ -32,7 +32,7 @@ void xmpp_send_status(const gchar *, XmppStatus);
 void xmpp_subscribe(const gchar *, const gchar *, const gchar *);
 void xmpp_subscr_response(gchar *, gint);
 static gchar *xmpp_status_to_str(XmppStatus);
-static gchar *xmpp_status_readable(XmppStatus);
+gchar *xmpp_status_readable(XmppStatus);
 void xmpp_roster_parsed_cb(void);
 /*************/
 
@@ -67,7 +67,7 @@ connect() {
 	} else {
 		ui_status_print("Connected to %s\n", conf_server);
 	}
-}
+} /* connect */
 
 static void
 connection_auth_cb(LmConnection *c, gboolean success, gpointer udata) {
@@ -93,7 +93,8 @@ connection_auth_cb(LmConnection *c, gboolean success, gpointer udata) {
 		xmpp_roster_request(c);	
 		g_timeout_add(60000, (GSourceFunc)reconnect, NULL);
 	}
-}
+	lua_post_connect();
+} /* connection_auth_cb */
 
 static void
 connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
@@ -121,8 +122,7 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 		ui_status_print("Connection closed due to unknown error\n");
 	}
 	initial_presence_sent = 0;
-}
-
+} /* connection_disconnect_cb */
 
 static void
 connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
@@ -149,7 +149,7 @@ connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 			ui_status_print("Authenticated as %s\n", conf_username);
 		}
 	}
-}
+} /* connection_open_cb */
 
 static void
 disconnect() {
@@ -168,7 +168,7 @@ disconnect() {
 		ui_roster_offline();
 		g_printerr("Disconnected\n");
 	}
-}
+} /* disconnect */
 
 LmHandlerResult
 iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
@@ -211,7 +211,7 @@ parse_err_presence(LmMessage *m)
 	node = lm_message_node_get_child(m->node, "error");
 	code = lm_message_node_get_attribute(node, "code");
 	ui_status_print("Got presence of type 'error' from %s (error code %s)\n", from, code);
-}
+} /* parse_err_presence */
 
 static void
 parse_status_presence(LmMessage *m)
@@ -303,7 +303,7 @@ parse_status_presence(LmMessage *m)
 	                  res->status_msg);	
 	ui_roster_update(sb->jid);
 	g_printerr("Done\n");
-}
+} /* parse_status_presence */
 
 static void
 parse_subscr_presence(LmMessage *m)
@@ -314,7 +314,7 @@ parse_subscr_presence(LmMessage *m)
 	ui_status_print("Got presence subscription, type '%s' from %s\n", type, jid);
 	if(!type || (g_strcmp0(type, "subscribe") == 0))
 		ui_show_presence_query(jid);
-}
+} /* parse_subscr_presence */
 
 LmHandlerResult
 pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
@@ -333,7 +333,7 @@ pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 			ui_status_print("Got presence of type %s\n", type);
 	}
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
-} /* xmpp_pres_handler */
+} /* pres_handler */
 
 static gboolean
 reconnect(void)
@@ -382,7 +382,7 @@ xmpp_cleanup() {
 	if(connection) lm_connection_unref(connection);
 	xmpp_roster_cleanup();
 	config_cleanup();
-}
+} /* xmpp_cleanup */
 
 void
 xmpp_init(void) {
@@ -418,7 +418,7 @@ xmpp_init(void) {
 	                                      NULL, NULL);
 	if(wantconnection)
 		connect();
-}
+} /* xmpp_init */
 
 void
 xmpp_send_message(const char *to, const char *msg)
@@ -433,7 +433,7 @@ xmpp_send_message(const char *to, const char *msg)
 		g_error_free(err);
 	}
 	lm_message_unref(m);
-}
+} /* xmpp_send_message */
 
 void
 xmpp_send_status(const gchar *to, XmppStatus s)
@@ -514,7 +514,7 @@ void xmpp_subscribe(const gchar *j, const gchar *n, const gchar *g) {
 		g_error_free(err);
 	}
 	lm_message_unref(msg);
-}
+} /* xmpp_subscribe */
 
 void
 xmpp_subscr_response(gchar *j, gint s)
@@ -529,11 +529,12 @@ xmpp_subscr_response(gchar *j, gint s)
 		g_error_free(err);
 	}
 	lm_message_unref(msg);
-}
+} /* xmpp_subscr_response */
 
-static char *
+char *
 xmpp_status_readable(XmppStatus st)
 {
+	return "foobar";
 	if(st == STATUS_ONLINE) return "online";
 	else if(st == STATUS_FFC) return "free for chat";
 	else if(st == STATUS_AWAY) return "away";
@@ -548,4 +549,4 @@ xmpp_roster_parsed_cb(void)
 {
 	if(!initial_presence_sent)
 		xmpp_send_status(NULL, ui_get_status());
-}
+} /* xmpp_roster_parsed_cb */
