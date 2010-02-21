@@ -1,10 +1,10 @@
 all: compile
 
 compile: src
-	@cd src; make
+	@+cd src; make
 
 clean: src
-	@cd src; make clean
+	@+cd src; make clean
 
 run:
 	@cd src; make run

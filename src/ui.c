@@ -104,9 +104,7 @@ destroy(GtkWidget *widget, gpointer data)
 static void
 focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 {
-	g_printerr("Got focus\n");
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window))) {
-		g_printerr("Removing wm urgency\n");
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	}
 } /* focus_cb */
@@ -143,7 +141,6 @@ static void
 infobar_response_cb(GtkInfoBar *i, gint r, gpointer j)
 {
 	gchar *jid = (gchar *)j;
-	ui_status_print("Sending response to %s\n", jid);
 	xmpp_subscr_response(jid, (r == GTK_RESPONSE_YES)
 	                                 ? TRUE : FALSE);
 	gtk_container_remove(GTK_CONTAINER(toolbox), GTK_WIDGET(i));
@@ -170,7 +167,6 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 				ui_status_print("Config file reloaded\n");
 				config_reload();
 			} else {
-				g_printerr("Getting focus on roster\n");
 				gtk_widget_grab_focus(rview);
 			}
 			break;
@@ -288,7 +284,6 @@ static void
 tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 {	
 	Chattab *tab = get_tab_content(n);
-	g_printerr("Switching to tab %s (%d)\n", tab->title, n);
 	if(tab->jid) {
 		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
 		gtk_widget_grab_focus(tab->entry);
@@ -433,6 +428,7 @@ ui_setup(int *argc, char **argv[])
 	                               GTK_POLICY_AUTOMATIC,
 	                               GTK_POLICY_AUTOMATIC);
 	gtk_window_set_title(GTK_WINDOW(window), "gtkabber");
+	gtk_widget_set_size_request(window, 640, 480);
 	/* packing */
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin), rview);
 	gtk_container_add(GTK_CONTAINER(window), vbox);

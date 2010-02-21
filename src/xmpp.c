@@ -222,10 +222,8 @@ parse_status_presence(LmMessage *m)
 	Buddy *sb;
 	Resource *res;
 	LmMessageNode *child;
-	g_printerr("Parsing presence\n");
 	buf = lm_message_node_get_attribute(m->node, "from");
 	sep = strchr(buf, '/');
-	g_printerr("%d...", __LINE__);
 	if(sep) {
 		jid = g_strndup(buf, sep-buf);
 		resname = g_strdup(sep+1);
@@ -233,14 +231,12 @@ parse_status_presence(LmMessage *m)
 		jid = g_strdup(buf);
 		resname = g_strdup("default");
 	}
-	g_printerr("%d...", __LINE__);
 	sb = xmpp_roster_find_by_jid(jid);
 	if(!sb) {
 		g_free(jid);
 		g_free(resname);
 		return;
 	}
-	g_printerr("%d...", __LINE__);
 	res = xmpp_roster_find_res_by_name(sb, resname);
 	if(!res) {
 		/* we have to create a new resource */	
@@ -250,7 +246,6 @@ parse_status_presence(LmMessage *m)
 		xmpp_roster_add_resource(sb, res);
 	}
 	/* checking presence type (if available) */
-	g_printerr("%d...", __LINE__);
 	if((buf = lm_message_node_get_attribute(m->node, "type"))) {
 		if(g_strcmp0(buf, "unavailable") == 0)
 			res->status = STATUS_OFFLINE;
@@ -258,7 +253,6 @@ parse_status_presence(LmMessage *m)
 		res->status = STATUS_ONLINE;	
 	}
 	/* checking for some specific status */
-	g_printerr("%d...", __LINE__);
 	if((child = lm_message_node_get_child(m->node, "show"))) {
 		buf = lm_message_node_get_value(child);
 		if(buf[0] == 'a') res->status = STATUS_AWAY;
@@ -272,18 +266,15 @@ parse_status_presence(LmMessage *m)
 	}
 	/* checking if resource has some previous status message.
 	 * If it does, purge it */
-	g_printerr("%d...", __LINE__);
 	if(res->status_msg) {
 		g_free(res->status_msg);
 		res->status_msg = NULL;
 	}
 	/* checking for status message */
-	g_printerr("%d...", __LINE__);
 	child = lm_message_node_get_child(m->node, "status");
 	if (child && (buf = lm_message_node_get_value(child)))
 		res->status_msg = g_strdup(buf);
 	/* checking priority (if provided) */
-	g_printerr("%d...", __LINE__);
 	child = lm_message_node_get_child(m->node, "priority");
 	if(child && (buf = lm_message_node_get_value(child)))
 		res->priority = atoi(buf);
@@ -302,7 +293,6 @@ parse_status_presence(LmMessage *m)
 	lua_pres_callback(sb->jid, xmpp_status_readable(res->status),
 	                  res->status_msg);	
 	ui_roster_update(sb->jid);
-	g_printerr("Done\n");
 } /* parse_status_presence */
 
 static void
