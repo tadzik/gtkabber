@@ -165,7 +165,8 @@ item_clicked(GtkMenuItem *m, gpointer p)
 	else if(text[2] == ' ') st = STATUS_DND;
 	else st = STATUS_OFFLINE;
 	ui_status_print("Sending status '%s' to %s\n", text, (char *)p);
-	xmpp_send_status((char *)p, st);
+	/*TODO: Some prompt for status message?*/
+	xmpp_send_status((char *)p, st, NULL);
 } /* item_clicked */
 
 static GdkPixbuf *

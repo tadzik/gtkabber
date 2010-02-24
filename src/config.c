@@ -89,19 +89,20 @@ fun_sendmsg(lua_State *l)
 static int
 fun_sendstatus(lua_State *l)
 {
-	const gchar *to, *type;
+	const gchar *to, *type, *msg;
 	XmppStatus st;
 	to = lua_tostring(l, 1);
 	type = lua_tostring(l, 2);
+	msg = lua_tostring(l, 3);
 	if(type[0] == 'o') st = STATUS_ONLINE;
 	else if(type[0] == 'f') st = STATUS_FFC;
 	else if(type[0] == 'a') st = STATUS_AWAY;
 	else if(type[0] == 'x') st = STATUS_XA;
 	else if(type[0] == 'd') st = STATUS_DND;
 	else st = STATUS_OFFLINE;
-/*	ui_status_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
-	                (to) ? to : "the server");*/
-	xmpp_send_status(to, st);
+	ui_status_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
+	                (to) ? to : "the server");
+	xmpp_send_status(to, st, msg);
 	return 0;
 } /* fun_sendstatus */
 

@@ -42,7 +42,7 @@ print txt in a gtkabber's status tab
 
 send a message to somebody
 
-=item B<gtkabber.sendstatus (to, type)>
+=item B<gtkabber.sendstatus (to, type, msg)>
 
 send a status to a buddy or a server (provide nil as a 'to' parameter to set the status globally). Only the first character of the 'type' parameter is checked, so you don't really have to type much (though you can). Examples:
 
@@ -61,6 +61,8 @@ send a status to a buddy or a server (provide nil as a 'to' parameter to set the
 =item B<*> anything else - offline
 
 =back
+
+If msg is not provided, the message will be taken from the status message box in the gui.
 
 =back
 

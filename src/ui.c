@@ -76,7 +76,7 @@ append_to_tab(Chattab *t, const gchar *s)
 static void
 cbox_changed_cb(GtkComboBox *e, gpointer p)
 {
-	xmpp_send_status(NULL, ui_get_status());
+	xmpp_send_status(NULL, ui_get_status(), NULL);
 } /* cbox_changed_cb */
 
 static void
@@ -229,7 +229,7 @@ set_wm_urgency(void)
 static void
 status_changed(GtkEntry *e, gpointer p)
 {
-	xmpp_send_status(NULL, ui_get_status());
+	xmpp_send_status(NULL, ui_get_status(), NULL);
 }
 
 static void
@@ -470,7 +470,7 @@ void
 ui_set_status_msg(const char *m)
 {
 	gtk_entry_set_text(GTK_ENTRY(status_entry), m);
-	xmpp_send_status(NULL, ui_get_status());
+	xmpp_send_status(NULL, ui_get_status(), NULL);
 } /* ui_set_status_msg */
 
 void

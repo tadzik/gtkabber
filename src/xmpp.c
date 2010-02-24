@@ -28,7 +28,7 @@ static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
 void xmpp_cleanup(void);
 void xmpp_init(void);
 void xmpp_send_message(const char *, const char *);
-void xmpp_send_status(const gchar *, XmppStatus);
+void xmpp_send_status(const gchar *, XmppStatus, const gchar *);
 void xmpp_subscribe(const gchar *, const gchar *, const gchar *);
 void xmpp_subscr_response(gchar *, gint);
 static gchar *xmpp_status_to_str(XmppStatus);
@@ -426,7 +426,7 @@ xmpp_send_message(const char *to, const char *msg)
 } /* xmpp_send_message */
 
 void
-xmpp_send_status(const gchar *to, XmppStatus s)
+xmpp_send_status(const gchar *to, XmppStatus s, const gchar *msg)
 {
 	LmMessage *p;
 	GError *err = NULL;
@@ -443,7 +443,7 @@ xmpp_send_status(const gchar *to, XmppStatus s)
 		return;
 	}
 	conf_priority = g_strdup_printf("%d\n", get_settings(PRIORITY).i);
-	status_msg = ui_get_status_msg();
+	status_msg = (msg) ? msg : ui_get_status_msg();
 	p = lm_message_new_with_sub_type(to, LM_MESSAGE_TYPE_PRESENCE,
 	                                 (s == STATUS_OFFLINE)
 	                                 	? LM_MESSAGE_SUB_TYPE_UNAVAILABLE
@@ -537,5 +537,5 @@ void
 xmpp_roster_parsed_cb(void)
 {
 	if(!initial_presence_sent)
-		xmpp_send_status(NULL, ui_get_status());
+		xmpp_send_status(NULL, ui_get_status(), NULL);
 } /* xmpp_roster_parsed_cb */
