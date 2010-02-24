@@ -181,8 +181,10 @@ loadactions(void)
 		g_string_printf(index, "%d\n", i);
 		lua_pushstring(lua, index->str);
 		lua_gettable(lua, -2);
-		if(lua_isnil(lua, -1))
+		if(lua_isnil(lua, -1)) {
+			lua_pop(lua, 1);
 			break;
+		}
 		if(!lua_istable(lua, -1)) {
 			ui_status_print("Lua error: actions[%s] not an array\n", index);
 			lua_pop(lua, 1);
