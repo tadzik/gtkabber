@@ -16,6 +16,8 @@
  * as various things of which user can decide */
 
 /* functions */
+void action_call(int);
+const char *action_get(int);
 void config_cleanup(void);
 void config_init(void);
 void config_reload(void);
@@ -26,7 +28,6 @@ static int getbool(const gchar *);
 static int getint(const gchar *);
 static gchar *getstr(const gchar *);
 Option get_settings(Settings);
-const char *action_get(int);
 static void init_settings(void);
 static void loadactions(void);
 static void loadfile(void);
@@ -41,6 +42,38 @@ lua_State *lua;
 Option settings[NUM_SETTINGS];
 GArray *actions;
 /********/
+
+void action_call(int i)
+{
+	lua_settop(lua, 0);
+	lua_getglobal(lua, "actions");
+	if(!lua_istable(lua, -1)) {
+		ui_status_print("actions not a table!\n");
+		lua_settop(lua, 0);
+		return;
+	}
+	/* fetching actions[i] */
+	lua_pushinteger(lua, i+1);
+	lua_gettable(lua, -2);
+	if(lua_isnil(lua, -1)) {
+		ui_status_print("actions[%d] nil!\n", i+1);
+		lua_settop(lua, 0);
+		return;
+	}
+	if(!lua_istable(lua, -1)) {
+		ui_status_print("actions[%d] not a table!\n", i+1);
+		lua_settop(lua, 0);
+		return;
+	}
+	/* fetching actions[i].action */
+	lua_pushstring(lua, "action");
+	lua_gettable(lua, -2);
+	if(lua_pcall(lua, 0, 0, 0)) {
+		ui_status_print("lua: error running action: %s\n",
+		                lua_tostring(lua, -1));
+	}
+	lua_settop(lua, 0);
+} /* action_call */
 
 const char *
 action_get(int n)
