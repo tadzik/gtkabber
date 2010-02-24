@@ -26,6 +26,7 @@ static int getbool(const gchar *);
 static int getint(const gchar *);
 static gchar *getstr(const gchar *);
 Option get_settings(Settings);
+const char *action_get(int);
 static void init_settings(void);
 static void loadactions(void);
 static void loadfile(void);
@@ -40,6 +41,13 @@ lua_State *lua;
 Option settings[NUM_SETTINGS];
 GArray *actions;
 /********/
+
+const char *
+action_get(int n)
+{
+	if(n > (int)actions->len) return NULL;
+	return g_array_index(actions, gchar *, n);
+} /* action_get */
 
 void
 config_cleanup(void)
@@ -68,7 +76,8 @@ config_init(void)
 	loadactions();
 } /* config_parse_rcfile */
 
-void config_reload(void)
+void
+config_reload(void)
 {
 	config_cleanup();
 	config_init();
@@ -123,7 +132,7 @@ getbool(const gchar *o)
 		ret = -1;
 	else
 		ret = lua_toboolean(lua, 1);
-	lua_remove(lua, 1);
+	lua_pop(lua, 1);
 	return ret;
 } /* getbool */
 
@@ -133,7 +142,7 @@ getint(const gchar *o)
 	int ret;
 	lua_getglobal(lua, o);
 	ret = (int)lua_tonumber(lua, 1);
-	lua_remove(lua, 1);
+	lua_pop(lua, 1);
 	return ret;
 } /* getint */
 
@@ -143,7 +152,7 @@ getstr(const gchar *o)
 	gchar *ret;
 	lua_getglobal(lua, o);
 	ret = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
+	lua_pop(lua, 1);
 	return ret;
 } /* getstr */
 
@@ -169,41 +178,37 @@ init_settings(void)
 static void
 loadactions(void)
 {
-	GString *index = g_string_new(NULL);
 	int i;
+	lua_settop(lua, 0);
 	lua_getglobal(lua, "actions");
 	if(!lua_istable(lua, -1)) {
-		lua_pop(lua, 1);
+		lua_settop(lua, 0);
 		return;
 	}
 	for (i=1; ; i++) {
 		gchar *name;
-		g_string_printf(index, "%d\n", i);
-		lua_pushstring(lua, index->str);
+		lua_settop(lua, 1);
+		/* fetching actions[i] */
+		lua_pushinteger(lua, i);
 		lua_gettable(lua, -2);
 		if(lua_isnil(lua, -1)) {
-			lua_pop(lua, 1);
 			break;
 		}
 		if(!lua_istable(lua, -1)) {
-			ui_status_print("Lua error: actions[%s] not an array\n", index);
-			lua_pop(lua, 1);
+			ui_status_print("Lua error: actions[%d] not an array\n", i);
 			continue;
 		}
-
+		/* fetching actions[i].name */
 		lua_pushstring(lua, "name");
 		lua_gettable(lua, -2);
 		if(!lua_isstring(lua, -1)) {
-			ui_status_print("Lua error: actions[%s].name not a string\n", index);
-			lua_pop(lua, 1);
+			ui_status_print("Lua error: actions[%d].name not a string\n", i);
 			continue;
 		}
 		name = g_strdup(lua_tostring(lua, -1));
-		lua_pop(lua, 1);
 		g_array_append_val(actions, name);
 	}
-	lua_pop(lua, 1); /* popping out "actions" array */
-	g_string_free(index, TRUE);
+	lua_settop(lua, 0); /* popping out "actions" array */
 } /* loadactions */
 
 static void
@@ -256,7 +261,8 @@ loadfile(void)
 	g_free(path);
 } /* loadfile */
 
-static void loadlib(void)
+static void
+loadlib(void)
 {
 	/* here we create a table with C functions (pseudo-object)
 	 * then we set it global, so one can use it in lua scripts
