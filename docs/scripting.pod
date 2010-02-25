@@ -66,9 +66,24 @@ send a status to a buddy or a server (provide nil as a 'to' parameter to set the
 
 More coming soon :)
 
+=head2 User-defined actions
+
+User can define his own actions which can be easily called from gtkabber's user interface. To use this feature, create (in your config file)
+an array called 'actions' containing... ah, let me show you an example:
+
+ actions = {
+		{ name = "_Test", action = function () os.execute("xcowsay 'This is a test!' &") end },
+		{ name = "Go _away", action = gtkabber.sendstatus(nil, "away") }
+ }
+
+The following will result in creating two buttons in your options bar, each with a mnemonic (the character prefixed with an underscore),
+launching a specified action when clicked.
+
 =head2 Examples
 
 =over 4
+
+See also 'actions' array example in "User-defined actions" section.
 
  -- automagically respond to 'ping'
  function message_cb (jid, msg) 
