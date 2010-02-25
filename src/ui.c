@@ -54,6 +54,12 @@ static GSList *tabs;
 /********************/
 
 static void
+action_cb(GtkButton *b, gpointer i)
+{
+	action_call(GPOINTER_TO_INT(i));
+} /* action_cb */
+
+static void
 append_to_tab(Chattab *t, const gchar *s)
 {
 	/* writing string s at the end of tab t's buffer
@@ -298,15 +304,26 @@ toggle_options(void)
 	static int shown = 0;
 	static GtkWidget *hbox;
 	if(!shown) {
+		int i;
 		GtkWidget *sbutton;
 		hbox = gtk_hbutton_box_new();
 		gtk_button_box_set_layout(GTK_BUTTON_BOX(hbox), GTK_BUTTONBOX_SPREAD);
+		/* Subscribe */
 		sbutton = gtk_button_new_with_mnemonic("_Subscribe");
-		/* callbacks */
 		g_signal_connect(G_OBJECT(sbutton), "clicked",
 		                 G_CALLBACK(ui_show_subscribe_query), NULL);
-		/* packing */
 		gtk_container_add(GTK_CONTAINER(hbox), sbutton);
+		/* User-defined actions */
+		for(i=0; ; i++) {
+			GtkWidget *button;
+			const gchar *text = action_get(i);
+			if(text == NULL) break;
+			button = gtk_button_new_with_mnemonic(text);
+			g_signal_connect(G_OBJECT(button), "clicked",
+			                 G_CALLBACK(action_cb), GINT_TO_POINTER(i));
+			gtk_container_add(GTK_CONTAINER(hbox), button);
+		}
+
 		gtk_box_pack_end(GTK_BOX(toolbox), hbox, FALSE, FALSE, 0);
 		gtk_widget_show_all(hbox);
 	} else {
