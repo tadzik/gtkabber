@@ -16,6 +16,8 @@
  * as various things of which user can decide */
 
 /* functions */
+void action_call(int);
+const char *action_get(int);
 void config_cleanup(void);
 void config_init(void);
 void config_reload(void);
@@ -27,6 +29,7 @@ static int getint(const gchar *);
 static gchar *getstr(const gchar *);
 Option get_settings(Settings);
 static void init_settings(void);
+static void loadactions(void);
 static void loadfile(void);
 static void loadlib(void);
 void lua_msg_callback(const gchar *, const gchar *);
@@ -37,7 +40,47 @@ void lua_pres_callback(const gchar *, const gchar *, const gchar *);
 /* vars */
 lua_State *lua;
 Option settings[NUM_SETTINGS];
+GArray *actions;
 /********/
+
+void action_call(int i)
+{
+	lua_settop(lua, 0);
+	lua_getglobal(lua, "actions");
+	if(!lua_istable(lua, -1)) {
+		ui_status_print("actions not a table!\n");
+		lua_settop(lua, 0);
+		return;
+	}
+	/* fetching actions[i] */
+	lua_pushinteger(lua, i+1);
+	lua_gettable(lua, -2);
+	if(lua_isnil(lua, -1)) {
+		ui_status_print("actions[%d] nil!\n", i+1);
+		lua_settop(lua, 0);
+		return;
+	}
+	if(!lua_istable(lua, -1)) {
+		ui_status_print("actions[%d] not a table!\n", i+1);
+		lua_settop(lua, 0);
+		return;
+	}
+	/* fetching actions[i].action */
+	lua_pushstring(lua, "action");
+	lua_gettable(lua, -2);
+	if(lua_pcall(lua, 0, 0, 0)) {
+		ui_status_print("lua: error running action: %s\n",
+		                lua_tostring(lua, -1));
+	}
+	lua_settop(lua, 0);
+} /* action_call */
+
+const char *
+action_get(int n)
+{
+	if(n > (int)actions->len) return NULL;
+	return g_array_index(actions, gchar *, n);
+} /* action_get */
 
 void
 config_cleanup(void)
@@ -48,6 +91,10 @@ config_cleanup(void)
 		g_free(settings[i].s);
 	}
 	lua_close(lua);
+	for(i=0; i < (int)actions->len; i++) {
+		g_free(g_array_index(actions, gchar *, i));
+	}
+	g_array_free(actions, TRUE);
 }
 
 void
@@ -58,11 +105,14 @@ config_init(void)
 	init_settings();
 	loadfile();
 	loadlib();
+	actions = g_array_new(FALSE, FALSE, sizeof(gchar *));
+	loadactions();
 } /* config_parse_rcfile */
 
-void config_reload(void)
+void
+config_reload(void)
 {
-	lua_close(lua);
+	config_cleanup();
 	config_init();
 } /* config_reload */
 
@@ -116,7 +166,7 @@ getbool(const gchar *o)
 		ret = -1;
 	else
 		ret = lua_toboolean(lua, 1);
-	lua_remove(lua, 1);
+	lua_pop(lua, 1);
 	return ret;
 } /* getbool */
 
@@ -126,7 +176,7 @@ getint(const gchar *o)
 	int ret;
 	lua_getglobal(lua, o);
 	ret = (int)lua_tonumber(lua, 1);
-	lua_remove(lua, 1);
+	lua_pop(lua, 1);
 	return ret;
 } /* getint */
 
@@ -136,7 +186,7 @@ getstr(const gchar *o)
 	gchar *ret;
 	lua_getglobal(lua, o);
 	ret = g_strdup(lua_tostring(lua, 1));
-	lua_remove(lua, 1);
+	lua_pop(lua, 1);
 	return ret;
 } /* getstr */
 
@@ -154,11 +204,46 @@ init_settings(void)
 	for(i = 0; i != USE_SSL; i++) {
 		settings[i].s = NULL;
 	}
-	settings[RESOURCE].s = g_strdup("gtkabber");
 	for(i = USE_SSL; i != NUM_SETTINGS; i++) {
 		settings[i].i = 0;
 	}
 } /* init_settings */
+
+static void
+loadactions(void)
+{
+	int i;
+	lua_settop(lua, 0);
+	lua_getglobal(lua, "actions");
+	if(!lua_istable(lua, -1)) {
+		lua_settop(lua, 0);
+		return;
+	}
+	for (i=1; ; i++) {
+		gchar *name;
+		lua_settop(lua, 1);
+		/* fetching actions[i] */
+		lua_pushinteger(lua, i);
+		lua_gettable(lua, -2);
+		if(lua_isnil(lua, -1)) {
+			break;
+		}
+		if(!lua_istable(lua, -1)) {
+			ui_status_print("Lua error: actions[%d] not an array\n", i);
+			continue;
+		}
+		/* fetching actions[i].name */
+		lua_pushstring(lua, "name");
+		lua_gettable(lua, -2);
+		if(!lua_isstring(lua, -1)) {
+			ui_status_print("Lua error: actions[%d].name not a string\n", i);
+			continue;
+		}
+		name = g_strdup(lua_tostring(lua, -1));
+		g_array_append_val(actions, name);
+	}
+	lua_settop(lua, 0); /* popping out "actions" array */
+} /* loadactions */
 
 static void
 loadfile(void)
@@ -171,6 +256,7 @@ loadfile(void)
 	if(luaL_loadfile(lua, path) || lua_pcall(lua, 0, 0, 0)) {
 		ui_status_print("Couldn't parse the configuration file %s: %s",
 		                lua_tostring(lua, -1));
+		lua_pop(lua, 1);
 		return;
 	}
 
@@ -209,7 +295,8 @@ loadfile(void)
 	g_free(path);
 } /* loadfile */
 
-static void loadlib(void)
+static void
+loadlib(void)
 {
 	/* here we create a table with C functions (pseudo-object)
 	 * then we set it global, so one can use it in lua scripts
@@ -249,7 +336,7 @@ lua_msg_callback(const gchar *j, const gchar *m)
 	if(lua_pcall(lua, 2, 0, 0)) {
 		ui_status_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
-		lua_pop(lua, -1);
+		lua_pop(lua, 1);
 	}
 } /* lua_msg_callback */
 
@@ -269,7 +356,7 @@ lua_post_connect(void)
 	if(lua_pcall(lua, 0, 0, 0)) {
 		ui_status_print("lua: error running post_connect: %s\n",
 		                lua_tostring(lua, -1));
-		lua_pop(lua, -1);
+		lua_pop(lua, 1);
 	}
 
 }
@@ -293,6 +380,6 @@ lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 	if(lua_pcall(lua, 3, 0, 0)) {
 		ui_status_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
-		lua_pop(lua, -1);
+		lua_pop(lua, 1);
 	}
 }

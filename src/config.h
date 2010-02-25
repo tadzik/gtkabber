@@ -2,6 +2,8 @@
 #define CONFIG_H
 #include "types.h"
 
+void action_call(int);
+const char *action_get(int);
 void config_cleanup(void);
 void config_init(void);
 void config_reload(void);
