@@ -48,7 +48,7 @@ void action_call(int i)
 	lua_settop(lua, 0);
 	lua_getglobal(lua, "actions");
 	if(!lua_istable(lua, -1)) {
-		ui_status_print("actions not a table!\n");
+		ui_print("actions not a table!\n");
 		lua_settop(lua, 0);
 		return;
 	}
@@ -56,12 +56,12 @@ void action_call(int i)
 	lua_pushinteger(lua, i+1);
 	lua_gettable(lua, -2);
 	if(lua_isnil(lua, -1)) {
-		ui_status_print("actions[%d] nil!\n", i+1);
+		ui_print("actions[%d] nil!\n", i+1);
 		lua_settop(lua, 0);
 		return;
 	}
 	if(!lua_istable(lua, -1)) {
-		ui_status_print("actions[%d] not a table!\n", i+1);
+		ui_print("actions[%d] not a table!\n", i+1);
 		lua_settop(lua, 0);
 		return;
 	}
@@ -69,7 +69,7 @@ void action_call(int i)
 	lua_pushstring(lua, "action");
 	lua_gettable(lua, -2);
 	if(lua_pcall(lua, 0, 0, 0)) {
-		ui_status_print("lua: error running action: %s\n",
+		ui_print("lua: error running action: %s\n",
 		                lua_tostring(lua, -1));
 	}
 	lua_settop(lua, 0);
@@ -122,7 +122,7 @@ fun_print(lua_State *l)
 	const gchar *txt;
 	txt = lua_tostring(l, 1);
 	if(txt)
-		ui_status_print(txt);
+		ui_print(txt);
 	return 0;
 } /* fun_sendmsg */
 
@@ -150,7 +150,7 @@ fun_sendstatus(lua_State *l)
 	else if(type[0] == 'x') st = STATUS_XA;
 	else if(type[0] == 'd') st = STATUS_DND;
 	else st = STATUS_OFFLINE;
-	ui_status_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
+	ui_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
 	                (to) ? to : "the server");
 	xmpp_send_status(to, st, msg);
 	return 0;
@@ -229,14 +229,14 @@ loadactions(void)
 			break;
 		}
 		if(!lua_istable(lua, -1)) {
-			ui_status_print("Lua error: actions[%d] not an array\n", i);
+			ui_print("Lua error: actions[%d] not an array\n", i);
 			continue;
 		}
 		/* fetching actions[i].name */
 		lua_pushstring(lua, "name");
 		lua_gettable(lua, -2);
 		if(!lua_isstring(lua, -1)) {
-			ui_status_print("Lua error: actions[%d].name not a string\n", i);
+			ui_print("Lua error: actions[%d].name not a string\n", i);
 			continue;
 		}
 		name = g_strdup(lua_tostring(lua, -1));
@@ -254,7 +254,7 @@ loadfile(void)
 	path = g_strdup_printf("%s/.config/gtkabber.lua", g_getenv("HOME"));
 	/* load the file and run it */
 	if(luaL_loadfile(lua, path) || lua_pcall(lua, 0, 0, 0)) {
-		ui_status_print("Couldn't parse the configuration file %s: %s",
+		ui_print("Couldn't parse the configuration file %s: %s",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 		return;
@@ -327,14 +327,14 @@ lua_msg_callback(const gchar *j, const gchar *m)
 		return;
 	}
 	if(!lua_isfunction(lua, 1)) {
-		ui_status_print("lua error: 'message_cb' is not a function!\n");
+		ui_print("lua error: 'message_cb' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
 	}
 	lua_pushstring(lua, j);
 	lua_pushstring(lua, m);
 	if(lua_pcall(lua, 2, 0, 0)) {
-		ui_status_print("lua: error running message_cb: %s\n",
+		ui_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 	}
@@ -349,12 +349,12 @@ lua_post_connect(void)
 		return;
 	}
 	if(!lua_isfunction(lua, 1)) {
-		ui_status_print("lua error: 'post_connect' is not a function!\n");
+		ui_print("lua error: 'post_connect' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
 	}
 	if(lua_pcall(lua, 0, 0, 0)) {
-		ui_status_print("lua: error running post_connect: %s\n",
+		ui_print("lua: error running post_connect: %s\n",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 	}
@@ -370,7 +370,7 @@ lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 		return;
 	}
 	if(!lua_isfunction(lua, 1)) {
-		ui_status_print("lua error: 'presence_cb' is not a function!\n");
+		ui_print("lua error: 'presence_cb' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
 	}
@@ -378,7 +378,7 @@ lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 	lua_pushstring(lua, s);
 	lua_pushstring(lua, m);
 	if(lua_pcall(lua, 3, 0, 0)) {
-		ui_status_print("lua: error running message_cb: %s\n",
+		ui_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 	}

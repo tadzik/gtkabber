@@ -156,7 +156,7 @@ xmpp_roster_request(LmConnection *conn)
 	query = lm_message_node_add_child(req->node, "query", NULL);
 	lm_message_node_set_attributes(query, "xmlns", "jabber:iq:roster", NULL);
 	if(!lm_connection_send(conn, req, &err)) {
-		ui_status_print("Error sending roster request: %s\n", err->message);
+		ui_print("Error sending roster request: %s\n", err->message);
 		g_error_free(err);
 	}
 	lm_message_unref(req);

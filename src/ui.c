@@ -42,7 +42,7 @@ void ui_set_status(XmppStatus);
 void ui_set_status_msg(const gchar *);
 void ui_show_presence_query(const gchar *);
 void ui_show_subscribe_query(void);
-void ui_status_print(const gchar *msg, ...);
+void ui_print(const gchar *msg, ...);
 void ui_tab_print_message(const gchar *, const gchar *);
 /*************/
 
@@ -64,7 +64,7 @@ append_to_tab(Chattab *t, const gchar *s)
 {
 	/* writing string s at the end of tab t's buffer
 	 * internal function, for both status tab and chat tabs,
-	 * used by ui_status_print as well as ui_tab_print_message.
+	 * used by ui_print as well as ui_tab_print_message.
 	 * Just to not repeat myself */
 	GtkTextIter i;
 	time_t now;
@@ -170,7 +170,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 			break;
 		case 114: /* r */
 			if(e->state & GDK_MOD1_MASK) { /* with shift */
-				ui_status_print("Config file reloaded\n");
+				ui_print("Config file reloaded\n");
 				config_reload();
 			} else {
 				gtk_widget_grab_focus(rview);
@@ -559,7 +559,7 @@ ui_show_subscribe_query(void)
 } /* ui_show_subscribe_query */
 
 void
-ui_status_print(const char *msg, ...)
+ui_print(const char *msg, ...)
 {
 	/* Our printf() substitute, almost everything
 	 * that happens is reported here */
@@ -572,7 +572,7 @@ ui_status_print(const char *msg, ...)
 	g_printerr("%s", str);
 	va_end(ap);
 	g_free(str);
-} /* ui_status_print */
+} /* ui_print */
 
 void
 ui_tab_print_message(const char *jid, const char *msg)

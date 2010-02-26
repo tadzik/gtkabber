@@ -164,7 +164,7 @@ item_clicked(GtkMenuItem *m, gpointer p)
 	else if(text[2] == 't') st = STATUS_XA;
 	else if(text[2] == ' ') st = STATUS_DND;
 	else st = STATUS_OFFLINE;
-	ui_status_print("Sending status '%s' to %s\n", text, (char *)p);
+	ui_print("Sending status '%s' to %s\n", text, (char *)p);
 	/*TODO: Some prompt for status message?*/
 	xmpp_send_status((char *)p, st, NULL);
 } /* item_clicked */
@@ -185,7 +185,7 @@ load_icon(const gchar *status)
 	if (new == NULL) {
 		g_printerr("path: %s\n", path);
 		g_printerr("message: %s\n", err->message);
-		ui_status_print("Error loading iconset %s: %s\n", path, err->message);
+		ui_print("Error loading iconset %s: %s\n", path, err->message);
 		g_error_free(err);
 	}
 	g_free(path);
@@ -462,7 +462,7 @@ ui_roster_update(const char *jid)
 	else if(res->status == STATUS_DND) icon = dnd_icon;
 	else if(res->status == STATUS_OFFLINE) icon = offline_icon;
 	else {
-		ui_status_print("ui_roster_update: buddy has invalid status\n");
+		ui_print("ui_roster_update: buddy has invalid status\n");
 		return;	
 	}
 	gtk_tree_store_set(roster, &(sb->iter), COL_STATUS, icon, -1);
