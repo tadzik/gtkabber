@@ -26,7 +26,7 @@ in which you can type what you wish to say.
 
 =head4 Closing tabs
 
-No 'x' button, huh? Just press C-q (control + q) to close the active tab.
+No 'x' button, huh? Right click on a tab you want to close, or press C-q (control + q) to close the active tab.
 
 =head3 Sending subsription request
 

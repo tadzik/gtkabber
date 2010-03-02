@@ -17,7 +17,7 @@
 /* functions */
 static void append_to_tab(Chattab *, const gchar *);
 static void cbox_changed_cb(GtkComboBox *, gpointer);
-static void close_active_tab(void);
+static void close_tab(Chattab *);
 static void destroy(GtkWidget *, gpointer);
 static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
 static void free_all_tabs(void);
@@ -25,6 +25,7 @@ static Chattab *get_active_tab(void);
 static Chattab *get_tab_content(gint n);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
+static gboolean label_click_cb(GtkWidget *, GdkEventButton *, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
@@ -86,17 +87,17 @@ cbox_changed_cb(GtkComboBox *e, gpointer p)
 } /* cbox_changed_cb */
 
 static void
-close_active_tab(void)
+close_tab(Chattab *t)
 {
-	Chattab *tab = get_active_tab();
-	int pageno = gtk_notebook_page_num(GTK_NOTEBOOK(nbook), tab->vbox);
-	if(tab->jid == NULL)
+	int pageno;
+	if(t->jid == NULL)
 		return;
-	g_free(tab->jid);
-	g_free(tab->title);
+	pageno = gtk_notebook_page_num(GTK_NOTEBOOK(nbook), t->vbox);
+	g_free(t->jid);
+	g_free(t->title);
 	gtk_notebook_remove_page(GTK_NOTEBOOK(nbook), pageno);
-	tabs = g_slist_remove(tabs, (gconstpointer)tab);
-} /* close_active_tab */
+	tabs = g_slist_remove(tabs, (gconstpointer)t);
+} /* close_tab */
 
 static void
 destroy(GtkWidget *widget, gpointer data)
@@ -166,7 +167,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 			toggle_options();
 			break;
 		case 113: /* q */
-			close_active_tab();
+			close_tab(get_active_tab());
 			break;
 		case 114: /* r */
 			if(e->state & GDK_MOD1_MASK) { /* with shift */
@@ -193,6 +194,17 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 
 	return 0;
 } /* keypress_cb */
+
+static gboolean
+label_click_cb(GtkWidget *w, GdkEventButton *e, gpointer p)
+{
+	Chattab *tab;
+	if(e->button != 3)
+		return FALSE;
+	tab = (Chattab *)p;
+	close_tab(tab);
+	return TRUE;
+} /* label_click_cb */
 
 static void
 scroll_tab_down(Chattab *tab)
@@ -340,6 +352,7 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	 * xmpp_message_handler), if supplied jid is NULL, we're creating
 	 * a status_tab */
 	Chattab *tab;
+	GtkWidget *evbox;
 	tab = g_malloc(sizeof(Chattab));
 	if(jid == NULL) {
 		tab->jid = NULL;
@@ -348,8 +361,14 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	else
 		tab->jid = g_strdup(jid);
 	tab->title = g_strdup(title);
-	/* creating GtkLabel for the tab title */
+	/* setting up a place for a tab title */
+	evbox = gtk_event_box_new();
+	gtk_event_box_set_visible_window(GTK_EVENT_BOX(evbox), FALSE);
 	tab->label = gtk_label_new(tab->title);
+	gtk_container_add(GTK_CONTAINER(evbox), tab->label);
+	gtk_widget_show(tab->label);
+	g_signal_connect(G_OBJECT(evbox), "button-press-event",
+	                 G_CALLBACK(label_click_cb), (gpointer)tab);
 	/* creating GtkTextView for status messages */
 	tab->tview = gtk_text_view_new();
 	tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tab->tview));
@@ -383,7 +402,7 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	}
 	gtk_widget_show_all(tab->vbox);
 	/* aaand, launch! */
-	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, tab->label);
+	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, evbox);
 	tabs = g_slist_prepend(tabs, tab);
 	if(active && jid) {
 		gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook),
