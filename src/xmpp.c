@@ -60,12 +60,11 @@ connect() {
 		if(!lm_connection_get_server(connection))
 			lm_connection_set_server(connection, conf_server);
 	}
+	ui_print("Opening connection to %s\n", conf_server);
 	if(!lm_connection_open(connection, (LmResultFunction)connection_open_cb,
 	                       NULL, NULL, &err)) {
 	    ui_print("Error opening connection: %s\n", err->message);
 	    g_error_free(err);
-	} else {
-		ui_print("Connected to %s\n", conf_server);
 	}
 } /* connect */
 
@@ -122,6 +121,7 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 		ui_print("Connection closed due to unknown error\n");
 	}
 	initial_presence_sent = 0;
+	ui_roster_offline();
 } /* connection_disconnect_cb */
 
 static void
@@ -131,6 +131,7 @@ connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 	gchar *conf_res = get_settings(RESOURCE).s;
 	gchar *conf_username = get_settings(USERNAME).s;
 	if(success) {
+		ui_print("Connection established\n");
 		if(!conf_username) {
 			ui_print("ERROR: Insufficient configuration, "
 			                "authentication aborted (username not set)\n");
@@ -148,6 +149,8 @@ connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 		} else {
 			ui_print("Authenticated as %s\n", conf_username);
 		}
+	} else {
+		ui_print("Could not connect to server\n");
 	}
 } /* connection_open_cb */
 
@@ -165,7 +168,6 @@ disconnect() {
 	if(lm_connection_is_open(connection)) {
 		ui_print("Closing connection to %s\n", conf_server);
 		lm_connection_close(connection, NULL);
-		ui_roster_offline();
 		g_printerr("Disconnected\n");
 	}
 } /* disconnect */
