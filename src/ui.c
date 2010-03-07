@@ -233,12 +233,8 @@ setup_cbox(GtkWidget *cbox)
 static void
 set_wm_urgency(void)
 {
-	if(gtk_window_is_active(GTK_WINDOW(window))) {
-		g_printerr("Window alredy active, not setting wm urgency\n");
+	if(gtk_window_is_active(GTK_WINDOW(window)))
 		return;
-	} else {
-		g_printerr("Window not active, setting wm urgency\n");
-	}
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
