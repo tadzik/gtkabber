@@ -256,7 +256,8 @@ parse_status_presence(LmMessage *m)
 	/* checking for some specific status */
 	if((child = lm_message_node_get_child(m->node, "show"))) {
 		buf = lm_message_node_get_value(child);
-		if(buf[0] == 'a') res->status = STATUS_AWAY;
+		if(!buf) /* Do nothing, keep STATUS_ONLINE */;
+		else if(buf[0] == 'a') res->status = STATUS_AWAY;
 		else if(buf[0] == 'c') res->status = STATUS_FFC;
 		else if(buf[0] == 'x') res->status = STATUS_XA;
 		else if(buf[0] == 'd') res->status = STATUS_DND;
@@ -434,7 +435,7 @@ xmpp_send_status(const gchar *to, XmppStatus s, const gchar *msg)
 		connect();
 		return;
 	}
-	conf_priority = g_strdup_printf("%d\n", get_settings(PRIORITY).i);
+	conf_priority = g_strdup_printf("%d", get_settings(PRIORITY).i);
 	status_msg = (msg) ? msg : ui_get_status_msg();
 	p = lm_message_new_with_sub_type(to, LM_MESSAGE_TYPE_PRESENCE,
 	                                 (s == STATUS_OFFLINE)
