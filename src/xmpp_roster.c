@@ -1,20 +1,11 @@
-#include <loudmouth/loudmouth.h>
+#include "xmpp_roster.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include "ui.h"
-#include "types.h"
 #include "ui_roster.h"
+#include "types.h"
 #include "xmpp.h"
-
-/* functions */
-void xmpp_roster_add_resource(Buddy *, Resource *);
-void xmpp_roster_cleanup();
-Buddy *xmpp_roster_find_by_jid(const char *);
-Resource *xmpp_roster_find_res_by_name(Buddy *, const char *);
-Resource *xmpp_roster_get_best_resource(const char *);
-void xmpp_roster_parse_query(LmConnection *, LmMessageNode *);
-void xmpp_roster_request(LmConnection *);
-/*************/
 
 /* global vars */
 GSList *roster;
