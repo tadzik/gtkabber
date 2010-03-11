@@ -1,8 +1,9 @@
+#include "ui_roster.h"
+
 #include <gtk/gtk.h>
 #include <stdlib.h>
 #include <string.h>
 #include "config.h"
-#include "types.h"
 #include "ui.h"
 #include "xmpp.h"
 #include "xmpp_roster.h"
@@ -47,12 +48,6 @@ static void row_clicked_cb(GtkTreeView *, GtkTreePath *,
                            GtkTreeViewColumn *, gpointer);
 static gboolean tooltip_cb(GtkWidget *, gint, gint,
                            gboolean, GtkTooltip *, gpointer);
-void ui_roster_add(const gchar *, const gchar *, const gchar *);
-void ui_roster_cleanup(void);
-void ui_roster_offline(void);
-GtkWidget *ui_roster_setup(void);
-void ui_roster_toggle_offline(void);
-void ui_roster_update(const gchar *);
 /************/
 
 static gint

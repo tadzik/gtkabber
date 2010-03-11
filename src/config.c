@@ -1,4 +1,5 @@
-#include "types.h"
+#include "config.h"
+
 #include "xmpp.h"
 #include "ui.h"
 #include <glib.h>
@@ -16,25 +17,16 @@
  * as various things of which user can decide */
 
 /* functions */
-void action_call(int);
-const char *action_get(int);
-void config_cleanup(void);
-void config_init(void);
-void config_reload(void);
 static int fun_print(lua_State *);
 static int fun_sendmsg(lua_State *);
 static int fun_sendstatus(lua_State *);
 static int getbool(const gchar *);
 static int getint(const gchar *);
 static gchar *getstr(const gchar *);
-Option get_settings(Settings);
 static void init_settings(void);
 static void loadactions(void);
 static void loadfile(void);
 static void loadlib(void);
-void lua_msg_callback(const gchar *, const gchar *);
-void lua_post_connect(void);
-void lua_pres_callback(const gchar *, const gchar *, const gchar *);
 /*************/
 
 /* vars */

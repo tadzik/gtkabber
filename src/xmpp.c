@@ -1,3 +1,5 @@
+#include "xmpp.h"
+
 #include <loudmouth/loudmouth.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +7,6 @@
 #include "ui.h"
 #include "ui_roster.h"
 #include "xmpp_roster.h"
-#include "types.h"
 
 /* functions */
 static void connect(void);
@@ -14,26 +15,18 @@ static void connection_disconnect_cb(LmConnection *, LmDisconnectReason,
                                      gpointer);
 static void connection_open_cb(LmConnection *, gboolean, gpointer);
 static void disconnect(void);
-LmHandlerResult iq_handler(LmMessageHandler *, LmConnection *,
-                           LmMessage *, gpointer);
-LmHandlerResult mesg_handler(LmMessageHandler *, LmConnection *,
-                             LmMessage *, gpointer);
+static LmHandlerResult iq_handler(LmMessageHandler *, LmConnection *,
+                                  LmMessage *, gpointer);
+static LmHandlerResult mesg_handler(LmMessageHandler *, LmConnection *,
+                                    LmMessage *, gpointer);
 static void parse_err_presence(LmMessage *);
 static void parse_status_presence(LmMessage *);
 static void parse_subscr_presence(LmMessage *);
-LmHandlerResult pres_handler(LmMessageHandler *, LmConnection *,
-                             LmMessage *, gpointer);
+static LmHandlerResult pres_handler(LmMessageHandler *, LmConnection *,
+                                    LmMessage *, gpointer);
 static gboolean reconnect(void);
 static LmSSLResponse ssl_cb(LmSSL *, LmSSLStatus, gpointer);
-void xmpp_cleanup(void);
-void xmpp_init(void);
-void xmpp_send_message(const char *, const char *);
-void xmpp_send_status(const gchar *, XmppStatus, const gchar *);
-void xmpp_subscribe(const gchar *, const gchar *, const gchar *);
-void xmpp_subscr_response(gchar *, gint);
 static gchar *xmpp_status_to_str(XmppStatus);
-gchar *xmpp_status_readable(XmppStatus);
-void xmpp_roster_parsed_cb(void);
 /*************/
 
 /* global variables */
@@ -172,7 +165,7 @@ disconnect() {
 	}
 } /* disconnect */
 
-LmHandlerResult
+static LmHandlerResult
 iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
            gpointer userdata) {
 	LmMessageNode *query;
@@ -186,7 +179,7 @@ iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
 }
 
-LmHandlerResult
+static LmHandlerResult
 mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
              gpointer udata)
 {
@@ -299,7 +292,7 @@ parse_subscr_presence(LmMessage *m)
 		ui_show_presence_query(jid);
 } /* parse_subscr_presence */
 
-LmHandlerResult
+static LmHandlerResult
 pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
              gpointer udata)
 {

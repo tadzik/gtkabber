@@ -1,3 +1,5 @@
+#include "ui.h"
+
 #include <gtk/gtk.h>
 #include <stdarg.h>
 #include <time.h>
@@ -5,7 +7,6 @@
 #include <stdlib.h>
 #include "xmpp.h"
 #include "xmpp_roster.h"
-#include "types.h"
 #include "ui_roster.h"
 #include "config.h"
 
@@ -35,16 +36,6 @@ static void tab_entry_handler(GtkWidget *, gpointer);
 static void tab_notify(Chattab *);
 static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void toggle_options(void);
-Chattab *ui_create_tab(const gchar *, const gchar *, gint);
-XmppStatus ui_get_status(void);
-const gchar *ui_get_status_msg(void);
-void ui_setup(int *, char ***);
-void ui_set_status(XmppStatus);
-void ui_set_status_msg(const gchar *);
-void ui_show_presence_query(const gchar *);
-void ui_show_subscribe_query(void);
-void ui_print(const gchar *msg, ...);
-void ui_tab_print_message(const gchar *, const gchar *);
 /*************/
 
 /* global variables */
