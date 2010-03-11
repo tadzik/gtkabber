@@ -160,7 +160,7 @@ disconnect() {
 	gchar *conf_server = get_settings(SERVER).s;
 	if(!connection)	return;
 	if(lm_connection_get_state(connection)
-	   != LM_CONNECTION_STATE_AUTHENTICATED) {
+	   == LM_CONNECTION_STATE_AUTHENTICATED) {
 		m = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
 		                                 LM_MESSAGE_SUB_TYPE_UNAVAILABLE);
 		lm_connection_send(connection, m, NULL);
