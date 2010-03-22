@@ -102,6 +102,8 @@ destroy(GtkWidget *widget, gpointer data)
 static void
 focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 {
+	Chattab *tab = get_active_tab();
+	gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window))) {
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	}
@@ -234,7 +236,10 @@ set_wm_urgency(void)
 static void
 status_changed(GtkEntry *e, gpointer p)
 {
+	/* automagically focusing tab entry */
+	Chattab *tab = get_active_tab();
 	xmpp_send_status(NULL, ui_get_status(), NULL);
+	gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
 }
 
 static void
