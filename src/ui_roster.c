@@ -261,10 +261,13 @@ tooltip_cb(GtkWidget *w, gint x, gint y, gboolean k, GtkTooltip *t, gpointer p)
 			text = g_string_new(NULL);
 			g_string_append_printf(text, "<b>Jid</b>: %s", sb->jid);
 			if(res) {
-				if(res->status_msg)
+				if(res->status_msg) {
+					gchar *foo;
+					foo = g_markup_escape_text(res->status_msg, -1);
 					g_string_append_printf(text,
-						"\n<b>Status message:</b> %s",
-						res->status_msg);
+						"\n<b>Status message:</b> %s", foo);
+					g_free(foo);
+				}
 			}
 			gtk_tooltip_set_markup(t, text->str);
 			g_string_free(text, TRUE);
