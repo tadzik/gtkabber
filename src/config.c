@@ -70,7 +70,7 @@ void action_call(int i)
 const char *
 action_get(int n)
 {
-	if(n > (int)actions->len) return NULL;
+	if(n >= (int)actions->len) return NULL;
 	return g_array_index(actions, gchar *, n);
 } /* action_get */
 
