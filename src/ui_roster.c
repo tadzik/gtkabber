@@ -288,8 +288,12 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 	UiGroup *group;
 	GSList *elem;
 	/* checking if our buddy belongs to some group */
-	if (g == NULL)
-		g = g_strdup("general");
+	if (g == NULL) {
+		/* that looks a bit ugly, yet saves us some dynamic
+		 * memory allocation crap */
+		char buf[] = "general";
+		g = buf;
+	}
 	/* looking for his group */
 	for(elem = groups; elem; elem = elem->next) {
 		group = (UiGroup *)elem->data;
