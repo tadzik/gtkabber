@@ -288,30 +288,28 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 	UiGroup *group;
 	GSList *elem;
 	/* checking if our buddy belongs to some group */
-	if(g) {
-		/* looking for his group */
-		for(elem = groups; elem; elem = elem->next) {
-			group = (UiGroup *)elem->data;
-			if(g_strcmp0(group->name, g) == 0) break;
-		}
-		/* did we even find this group? */
-		if(elem) {
-			group = (UiGroup *)elem->data;
-		} else {
-			/* we'll have to create one */
-			group = g_malloc(sizeof(UiGroup));
-			group->name = g_strdup(g);
-			gtk_tree_store_append(roster, &toplevel, NULL);
-			gtk_tree_store_set(roster, &toplevel, COL_NAME, g, -1);
-			group->iter = toplevel;
-			groups = g_slist_prepend(groups, group);
-		}
-		iter = &children;
-		parent = &group->iter;
-	} else {
-		iter = &toplevel;
-		parent = NULL;
+	if (g == NULL)
+		g = g_strdup("general");
+	/* looking for his group */
+	for(elem = groups; elem; elem = elem->next) {
+		group = (UiGroup *)elem->data;
+		if(g_strcmp0(group->name, g) == 0) break;
 	}
+	/* did we even find this group? */
+	if(elem) {
+		group = (UiGroup *)elem->data;
+	} else {
+		/* we'll have to create one */
+		group = g_malloc(sizeof(UiGroup));
+		group->name = g_strdup(g);
+		gtk_tree_store_append(roster, &toplevel, NULL);
+		gtk_tree_store_set(roster, &toplevel, COL_NAME, g, -1);
+		group->iter = toplevel;
+		groups = g_slist_prepend(groups, group);
+	}
+	iter = &children;
+	parent = &group->iter;
+
 	gtk_tree_store_append(roster, iter, parent);
 	gtk_tree_store_set(roster, iter, COL_STATUS, offline_icon,
 	                   COL_NAME, n, -1);
