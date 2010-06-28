@@ -291,7 +291,7 @@ ui_roster_add(const gchar *j, const gchar *n, const gchar *g)
 	if (g == NULL) {
 		/* that looks a bit ugly, yet saves us some dynamic
 		 * memory allocation crap */
-		char buf[] = "general";
+		char buf[] = "---";
 		g = buf;
 	}
 	/* looking for his group */
