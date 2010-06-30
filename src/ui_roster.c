@@ -77,6 +77,7 @@ compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
 		g_free(n2);
 		return ret;
 	}
+	UNUSED(d);
 } /* compare_rows */
 
 static gboolean
@@ -118,6 +119,8 @@ click_cb(GtkWidget *w, GdkEventButton *e, gpointer p)
 	gtk_widget_show(menuitem);
 	gtk_menu_popup(GTK_MENU(menu), NULL, NULL, NULL, NULL, 3, e->time);
 	return FALSE;
+	UNUSED(w);
+	UNUSED(p);
 } /* click_cb */
 
 static gboolean
@@ -129,6 +132,7 @@ filter_func(GtkTreeModel *m, GtkTreeIter *i, gpointer u)
 	if(p == offline_icon)
 		return 0;
 	return 1;
+	UNUSED(u);
 }
 
 static gint
@@ -241,6 +245,8 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 		ui_create_tab(jid, sb->name, 1);
 		g_free(jid);
 	}
+	UNUSED(c);
+	UNUSED(d);
 } /* row_clicked_cb */
 
 static gboolean
@@ -275,6 +281,8 @@ tooltip_cb(GtkWidget *w, gint x, gint y, gboolean k, GtkTooltip *t, gpointer p)
 		}
 	}
 	return FALSE;
+	UNUSED(w);
+	UNUSED(p);
 } /* tooltip_cb */
 
 void

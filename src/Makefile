@@ -1,11 +1,8 @@
 INCS=$(shell pkg-config --cflags gtk+-2.0 loudmouth-1.0 lua)
 LIBS=$(shell pkg-config --libs gtk+-2.0 loudmouth-1.0 lua)
-WEXTRA=-Wclobbered -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized #Wextra without -Wunused-parameter
-PREFIX?=/usr/local
-INSTALLDIR?=$(DESTDIR)$(PREFIX)
 
 CC=gcc
-CFLAGS=-ansi -Wall -Werror -pedantic -O2 $(WEXTRA) -g $(INCS)
+CFLAGS=-ansi -Wall -Wextra -pedantic -O2 -g $(INCS)
 LD=gcc
 LDFLAGS=$(LIBS)
 
@@ -19,7 +16,11 @@ main.o: main.c types.h ui.h
 	@echo "Compiling main.c"
 	@$(CC) $(CFLAGS) -c main.c
 
-ui.o: types.h ui.c
+mlentry.o: mlentry.c mlentry.h
+	@echo "Compiling mlentry.c"
+	@$(CC) $(CFLAGS) -c mlentry.c
+
+ui.o: types.h ui.c mlentry.h
 	@echo "Compiling ui.c"
 	@$(CC) $(CFLAGS) -c ui.c
 
@@ -35,9 +36,9 @@ xmpp_roster.o: types.h ui.h xmpp.h xmpp_roster.c
 	@echo "Compiling xmpp_roster.c"
 	@$(CC) $(CFLAGS) -c xmpp_roster.c
 
-main: config.o main.o ui.o ui_roster.o xmpp.o xmpp_roster.o
+main: config.o main.o ui.o ui_roster.o xmpp.o xmpp_roster.o mlentry.o
 	@echo "Linking the whole project"
-	@$(LD) $(LDFLAGS) config.o main.o ui.o ui_roster.o \
+	@$(LD) $(LDFLAGS) config.o main.o ui.o ui_roster.o mlentry.o \
 					xmpp.o xmpp_roster.o -o main
 
 clean:

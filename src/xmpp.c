@@ -118,6 +118,7 @@ connection_auth_cb(LmConnection *c, gboolean success, gpointer udata) {
 		g_timeout_add(60000, (GSourceFunc)reconnect, NULL);
 	}
 	lua_post_connect();
+	UNUSED(udata);
 } /* connection_auth_cb */
 
 static void
@@ -147,6 +148,8 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 	}
 	initial_presence_sent = 0;
 	ui_roster_offline();
+	UNUSED(c);
+	UNUSED(udata);
 } /* connection_disconnect_cb */
 
 static void
@@ -177,6 +180,7 @@ connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 	} else {
 		ui_print("Could not connect to server\n");
 	}
+	UNUSED(udata);
 } /* connection_open_cb */
 
 static void
@@ -208,10 +212,13 @@ iq_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	if(query) {
 		if(g_strcmp0(lm_message_node_get_attribute(query, "xmlns"),
 		             "jabber:iq:roster") == 0) {
-			xmpp_roster_parse_query(c, query);
+			xmpp_roster_parse_query(query);
 		}
 	}
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
+	UNUSED(c);
+	UNUSED(h);
+	UNUSED(userdata);
 }
 
 static LmHandlerResult
@@ -230,6 +237,9 @@ mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 	 * as I've never actually seen them being used. If you do, and you care,
 	 * feel obliged to mail me and yell at me */
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
+	UNUSED(h);
+	UNUSED(c);
+	UNUSED(udata);
 } /* xmpp_mesg_handler */
 
 static void
@@ -344,6 +354,9 @@ pres_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
 			ui_print("Got presence of type %s\n", type);
 	}
 	return LM_HANDLER_RESULT_REMOVE_MESSAGE;
+	UNUSED(h);
+	UNUSED(c);
+	UNUSED(udata);
 } /* pres_handler */
 
 static gboolean
@@ -385,6 +398,8 @@ ssl_cb(LmSSL *ssl, LmSSLStatus st, gpointer u)
 	}
 	/* TODO: we should return LM_SSL_RESPONSE_STOP if the user is paranoic */
 	return LM_SSL_RESPONSE_CONTINUE;	
+	UNUSED(ssl);
+	UNUSED(u);
 } /* ssl_cb */
 
 void

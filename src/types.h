@@ -2,6 +2,9 @@
 #define TYPES_H
 #include <gtk/gtk.h>
 
+/* macro for unused parameters */
+#define UNUSED(x) (void)x
+
 typedef enum {
 	TO,
 	FROM,

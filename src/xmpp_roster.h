@@ -7,6 +7,6 @@ void xmpp_roster_cleanup(void);
 Buddy *xmpp_roster_find_by_jid(const char *);
 Resource *xmpp_roster_find_res_by_name(Buddy *, const char *);
 Resource *xmpp_roster_get_best_resource(const char *);
-void xmpp_roster_parse_query(LmConnection *, LmMessageNode *);
+void xmpp_roster_parse_query(LmMessageNode *);
 void xmpp_roster_request(LmConnection *);
 #endif

@@ -9,6 +9,7 @@
 #include "xmpp_roster.h"
 #include "ui_roster.h"
 #include "config.h"
+#include "mlentry.h"
 
 /* Here be everything ui-related, except the roster part,
  * which is in ui_roster.c
@@ -30,9 +31,9 @@ static gboolean label_click_cb(GtkWidget *, GdkEventButton *, gpointer);
 static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
 static void set_wm_urgency(void);
-static void status_changed(GtkEntry *, gpointer);
+static void status_changed(GtkWidget *, const char *, gpointer);
 static void subscr_response_cb(GtkButton *, gpointer);
-static void tab_entry_handler(GtkWidget *, gpointer);
+static void tab_entry_handler(GtkWidget *, const char *, gpointer);
 static void tab_notify(Chattab *);
 static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void toggle_options(void);
@@ -49,6 +50,7 @@ static void
 action_cb(GtkButton *b, gpointer i)
 {
 	action_call(GPOINTER_TO_INT(i));
+	UNUSED(b);
 } /* action_cb */
 
 static void
@@ -75,6 +77,8 @@ static void
 cbox_changed_cb(GtkComboBox *e, gpointer p)
 {
 	xmpp_send_status(NULL, ui_get_status(), NULL);
+	UNUSED(e);
+	UNUSED(p);
 } /* cbox_changed_cb */
 
 static void
@@ -97,6 +101,8 @@ destroy(GtkWidget *widget, gpointer data)
 	ui_roster_cleanup();
 	gtk_main_quit();
 	free_all_tabs();
+	UNUSED(widget);
+	UNUSED(data);
 } /* destroy */
 
 static void
@@ -107,6 +113,9 @@ focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window))) {
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	}
+	UNUSED(w);
+	UNUSED(f);
+	UNUSED(p);
 } /* focus_cb */
 
 static void
@@ -186,6 +195,8 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 	}
 
 	return 0;
+	UNUSED(w);
+	UNUSED(u);
 } /* keypress_cb */
 
 static gboolean
@@ -197,6 +208,7 @@ label_click_cb(GtkWidget *w, GdkEventButton *e, gpointer p)
 	tab = (Chattab *)p;
 	close_tab(tab);
 	return TRUE;
+	UNUSED(w);
 } /* label_click_cb */
 
 static void
@@ -234,12 +246,15 @@ set_wm_urgency(void)
 } /* set_wm_urgency */
 
 static void
-status_changed(GtkEntry *e, gpointer p)
+status_changed(GtkWidget *w, const char *e, gpointer p)
 {
 	/* automagically focusing tab entry */
 	Chattab *tab = get_active_tab();
 	xmpp_send_status(NULL, ui_get_status(), NULL);
 	gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
+	UNUSED(w);
+	UNUSED(e);
+	UNUSED(p);
 }
 
 static void
@@ -261,19 +276,18 @@ subscr_response_cb(GtkButton *b, gpointer t)
 } /* subscr_response_cb */
 
 static void
-tab_entry_handler(GtkWidget *e, gpointer p)
+tab_entry_handler(GtkWidget *mlentry, const char *t, gpointer p)
 {
 	/* Sending message to the interlocutor
 	 * and printing in in tab's buffer */
 	Chattab *tab = (Chattab *)p;
 	gchar *str;
-	const gchar *input = gtk_entry_get_text(GTK_ENTRY(e));
-	if(!input[0]) return;
-	xmpp_send_message(tab->jid, input);
-	str = g_strdup_printf("--> %s\n", input);
+	if (*t == 0) return;
+	xmpp_send_message(tab->jid, t);
+	str = g_strdup_printf("--> %s\n", t);
 	append_to_tab(tab, str);
 	g_free(str);
-	gtk_entry_set_text(GTK_ENTRY(e), "");
+	mlentry_clear(mlentry);
 } /* tab_entry_handler */
 
 static void
@@ -300,6 +314,9 @@ tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 	} else {
 		gtk_widget_grab_focus(nbook);
 	}
+	UNUSED(b);
+	UNUSED(p);
+	UNUSED(d);
 } /* tab_switch_cb */
 
 static void
@@ -376,11 +393,8 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
 	                                      tab->tview);
 	/* setting up the entry field */
-	if(jid) {
-		tab->entry = gtk_entry_new();
-		g_signal_connect(G_OBJECT(tab->entry), "activate",
-	                         G_CALLBACK(tab_entry_handler), (void *)tab);
-	}
+	if (jid)
+		tab->entry = mlentry_new(tab_entry_handler, tab);
 	/* some vbox to put it together */
 	tab->vbox = gtk_vbox_new(FALSE, 0);
 	/* this will help us finding Chattab struct by some of its properties */
@@ -424,9 +438,10 @@ ui_get_status(void)
 	}
 } /* ui_get_status */
 
-const char
-*ui_get_status_msg() {
-	return gtk_entry_get_text(GTK_ENTRY(status_entry));
+const char *
+ui_get_status_msg(void)
+{
+	return mlentry_get_text(status_entry);
 } /* ui_get_status_msg */
 
 void
@@ -450,7 +465,7 @@ ui_setup(int *argc, char **argv[])
 	/* setting up the more exciting ones */
 	rview = ui_roster_setup();
 	setup_cbox(status_cbox);
-	status_entry = gtk_entry_new();
+	status_entry = mlentry_new(status_changed, NULL);
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(nbook), TRUE);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 	                               GTK_POLICY_AUTOMATIC,
@@ -476,8 +491,6 @@ ui_setup(int *argc, char **argv[])
 	/* setting up signals */
 	g_signal_connect(G_OBJECT(window), "destroy",
 	                 G_CALLBACK(destroy), NULL);
-	g_signal_connect(G_OBJECT(status_entry), "activate",
-	                 G_CALLBACK(status_changed), NULL);
 	g_signal_connect(G_OBJECT(window), "key-press-event",
 	                 G_CALLBACK(keypress_cb), NULL);
 	g_signal_connect(G_OBJECT(window), "focus-in-event",

@@ -85,7 +85,7 @@ xmpp_roster_get_best_resource(const char *jid)
 } /* xmpp_roster_get_best_resource */
 
 void
-xmpp_roster_parse_query(LmConnection *c, LmMessageNode *q)
+xmpp_roster_parse_query(LmMessageNode *q)
 {
 	LmMessageNode *item;
 	for(item = lm_message_node_get_child(q, "item"); item;
