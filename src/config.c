@@ -131,14 +131,14 @@ fun_sendstatus(lua_State *l)
 	to = lua_tostring(l, 1);
 	type = lua_tostring(l, 2);
 	msg = lua_tostring(l, 3);
-	if(type[0] == 'o') st = STATUS_ONLINE;
-	else if(type[0] == 'f') st = STATUS_FFC;
-	else if(type[0] == 'a') st = STATUS_AWAY;
-	else if(type[0] == 'x') st = STATUS_XA;
-	else if(type[0] == 'd') st = STATUS_DND;
+	if (type[0] == 'o') st = STATUS_ONLINE;
+	else if (type[0] == 'f') st = STATUS_FFC;
+	else if (type[0] == 'a') st = STATUS_AWAY;
+	else if (type[0] == 'x') st = STATUS_XA;
+	else if (type[0] == 'd') st = STATUS_DND;
 	else st = STATUS_OFFLINE;
 	ui_print("Sending status '%s' to %s\n", xmpp_status_readable(st),
-	                (to) ? to : "the server");
+		 (to) ? to : "the server");
 	xmpp_send_status(to, st, msg);
 	return 0;
 } /* fun_sendstatus */
@@ -149,7 +149,7 @@ getbool(const gchar *o)
 	/* getbool returns -1 is the option is not set */
 	int ret;
 	lua_getglobal(lua, o);
-	if(!lua_isboolean(lua, 1))
+	if (lua_isboolean(lua, 1) == 0)
 		ret = -1;
 	else
 		ret = lua_toboolean(lua, 1);
@@ -219,10 +219,8 @@ get_settings_str(Settings s)
 	case USERNAME:
 		ptr = getstr("jid");
 		atpos = strchr(ptr, '@');
-		if (atpos) {
-			tofree = g_strndup(ptr, atpos - ptr);
-			return tofree;
-		}
+		if (atpos)
+			return tofree = g_strndup(ptr, atpos - ptr);
 	default:
 		return NULL;
 	}
@@ -234,27 +232,27 @@ loadactions(void)
 	int i;
 	lua_settop(lua, 0);
 	lua_getglobal(lua, "actions");
-	if(!lua_istable(lua, -1)) {
+	if (lua_istable(lua, -1) == 0) {
 		lua_settop(lua, 0);
 		return;
 	}
-	for (i=1; ; i++) {
+	for (i = 1; ; i++) {
 		gchar *name;
 		lua_settop(lua, 1);
 		/* fetching actions[i] */
 		lua_pushinteger(lua, i);
 		lua_gettable(lua, -2);
-		if(lua_isnil(lua, -1)) {
+		if (lua_isnil(lua, -1)) {
 			break;
 		}
-		if(!lua_istable(lua, -1)) {
+		if (lua_istable(lua, -1) == 0) {
 			ui_print("Lua error: actions[%d] not an array\n", i);
 			continue;
 		}
 		/* fetching actions[i].name */
 		lua_pushstring(lua, "name");
 		lua_gettable(lua, -2);
-		if(!lua_isstring(lua, -1)) {
+		if (lua_isstring(lua, -1) == 0) {
 			ui_print("Lua error: actions[%d].name not a string\n", i);
 			continue;
 		}
@@ -308,11 +306,11 @@ void
 lua_msg_callback(const gchar *j, const gchar *m)
 {
 	lua_getglobal(lua, "message_cb");
-	if(lua_isnil(lua, 1)) {
+	if (lua_isnil(lua, 1)) {
 		lua_pop(lua, 1);
 		return;
 	}
-	if(!lua_isfunction(lua, 1)) {
+	if (lua_isfunction(lua, 1) == 0) {
 		ui_print("lua error: 'message_cb' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
@@ -330,16 +328,16 @@ void
 lua_post_connect(void)
 {
 	lua_getglobal(lua, "post_connect");
-	if(lua_isnil(lua, 1)) {
+	if (lua_isnil(lua, 1)) {
 		lua_pop(lua, 1);
 		return;
 	}
-	if(!lua_isfunction(lua, 1)) {
+	if (lua_isfunction(lua, 1) == 0) {
 		ui_print("lua error: 'post_connect' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
 	}
-	if(lua_pcall(lua, 0, 0, 0)) {
+	if (lua_pcall(lua, 0, 0, 0)) {
 		ui_print("lua: error running post_connect: %s\n",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);
@@ -351,11 +349,11 @@ void
 lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 {
 	lua_getglobal(lua, "presence_cb");
-	if(lua_isnil(lua, 1)) {
+	if (lua_isnil(lua, 1)) {
 		lua_pop(lua, 1);
 		return;
 	}
-	if(!lua_isfunction(lua, 1)) {
+	if (lua_isfunction(lua, 1) == 0) {
 		ui_print("lua error: 'presence_cb' is not a function!\n");
 		lua_pop(lua, 1);
 		return;
@@ -363,7 +361,7 @@ lua_pres_callback(const gchar *j, const gchar *s, const gchar *m)
 	lua_pushstring(lua, j);
 	lua_pushstring(lua, s);
 	lua_pushstring(lua, m);
-	if(lua_pcall(lua, 3, 0, 0)) {
+	if (lua_pcall(lua, 3, 0, 0)) {
 		ui_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);
