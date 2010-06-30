@@ -23,7 +23,6 @@ static int fun_sendstatus(lua_State *);
 static int getbool(const gchar *);
 static int getint(const gchar *);
 static gchar *getstr(const gchar *);
-static void init_settings(void);
 static void loadactions(void);
 static void loadfile(void);
 static void loadlib(void);
@@ -31,7 +30,7 @@ static void loadlib(void);
 
 /* vars */
 lua_State *lua;
-Option settings[NUM_SETTINGS];
+char *tofree = NULL;
 GArray *actions;
 /********/
 
@@ -39,7 +38,7 @@ void action_call(int i)
 {
 	lua_settop(lua, 0);
 	lua_getglobal(lua, "actions");
-	if(!lua_istable(lua, -1)) {
+	if (!lua_istable(lua, -1)) {
 		ui_print("actions not a table!\n");
 		lua_settop(lua, 0);
 		return;
@@ -47,12 +46,12 @@ void action_call(int i)
 	/* fetching actions[i] */
 	lua_pushinteger(lua, i+1);
 	lua_gettable(lua, -2);
-	if(lua_isnil(lua, -1)) {
+	if (lua_isnil(lua, -1)) {
 		ui_print("actions[%d] nil!\n", i+1);
 		lua_settop(lua, 0);
 		return;
 	}
-	if(!lua_istable(lua, -1)) {
+	if (!lua_istable(lua, -1)) {
 		ui_print("actions[%d] not a table!\n", i+1);
 		lua_settop(lua, 0);
 		return;
@@ -60,7 +59,7 @@ void action_call(int i)
 	/* fetching actions[i].action */
 	lua_pushstring(lua, "action");
 	lua_gettable(lua, -2);
-	if(lua_pcall(lua, 0, 0, 0)) {
+	if (lua_pcall(lua, 0, 0, 0)) {
 		ui_print("lua: error running action: %s\n",
 		                lua_tostring(lua, -1));
 	}
@@ -70,7 +69,7 @@ void action_call(int i)
 const char *
 action_get(int n)
 {
-	if(n >= (int)actions->len) return NULL;
+	if (n >= (int)actions->len) return NULL;
 	return g_array_index(actions, gchar *, n);
 } /* action_get */
 
@@ -78,12 +77,9 @@ void
 config_cleanup(void)
 {
 	int i;
-	/* cleaning strings in settings[] */
-	for(i=0; i != USE_SSL; i++) {
-		g_free(settings[i].s);
-	}
 	lua_close(lua);
-	for(i=0; i < (int)actions->len; i++) {
+	g_free(tofree); tofree = NULL;
+	for (i = 0; i < (int)actions->len; i++) {
 		g_free(g_array_index(actions, gchar *, i));
 	}
 	g_array_free(actions, TRUE);
@@ -94,7 +90,6 @@ config_init(void)
 {
 	/* This one opens rc file, reads its contents and passes the lines
 	 * to commands_exec() */	
-	init_settings();
 	loadfile();
 	loadlib();
 	actions = g_array_new(FALSE, FALSE, sizeof(gchar *));
@@ -113,7 +108,7 @@ fun_print(lua_State *l)
 {
 	const gchar *txt;
 	txt = lua_tostring(l, 1);
-	if(txt)
+	if (txt)
 		ui_print(txt);
 	return 0;
 } /* fun_sendmsg */
@@ -182,24 +177,56 @@ getstr(const gchar *o)
 	return ret;
 } /* getstr */
 
-Option
-get_settings(Settings s)
+int
+get_settings_int(Settings s)
 {
-	return settings[s];
-} /* get_settings */
+	int tmp;
+	switch (s) {
+	case USE_TLS:
+		tmp = getbool("use_tls");
+		return (tmp == -1) ? 0 : tmp;
+	case USE_SSL:
+		tmp = getbool("use_ssl");
+		return (tmp == -1) ? !get_settings_int(USE_TLS) : tmp;
+	case CASESENSORT:
+		tmp = getbool("case_sensitive_sorting");
+		return (tmp == -1) ? 0 : tmp;
+	case PORT:
+		tmp = getint("port");
+		return (tmp == -1) ? 0 : tmp;
+	case PRIORITY:
+		tmp = getint("priority");
+		return (tmp == -1) ? 10 : tmp;
+	default:
+		return -1;
+	}
+}
 
-static void
-init_settings(void)
+const char *
+get_settings_str(Settings s)
 {
-	/* strings go NULL, ints go 0 */
-	int i;
-	for(i = 0; i != USE_SSL; i++) {
-		settings[i].s = NULL;
+	char *ptr, *atpos;
+	switch (s) {
+	case SERVER:
+		return getstr("server");
+	case JID:
+		return getstr("jid");
+	case PASSWD:
+		return getstr("passwd");
+	case RESOURCE:
+		ptr = getstr("resource");
+		return (ptr) ? ptr : "gtkabber";
+	case USERNAME:
+		ptr = getstr("jid");
+		atpos = strchr(ptr, '@');
+		if (atpos) {
+			tofree = g_strndup(ptr, atpos - ptr);
+			return tofree;
+		}
+	default:
+		return NULL;
 	}
-	for(i = USE_SSL; i != NUM_SETTINGS; i++) {
-		settings[i].i = 0;
-	}
-} /* init_settings */
+} /* get_settings */
 
 static void
 loadactions(void)
@@ -240,49 +267,16 @@ loadactions(void)
 static void
 loadfile(void)
 {
-	char *atpos, *path;
+	char *path;
 	lua = lua_open();
 	luaL_openlibs(lua);
 	path = g_strdup_printf("%s/.config/gtkabber.lua", g_getenv("HOME"));
 	/* load the file and run it */
-	if(luaL_loadfile(lua, path) || lua_pcall(lua, 0, 0, 0)) {
+	if (luaL_loadfile(lua, path) || lua_pcall(lua, 0, 0, 0)) {
 		ui_print("Couldn't parse the configuration file %s: %s",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);
 		return;
-	}
-
-	/* strings */
-	settings[SERVER].s = getstr("server");
-	settings[JID].s = getstr("jid");
-	settings[PASSWD].s = getstr("passwd");
-	if((settings[RESOURCE].s = getstr("resource")) == NULL)
-		settings[RESOURCE].s = g_strdup("gtkabber");
-
-	if((settings[USE_TLS].i = getbool("use_tls")) == -1)
-		settings[USE_TLS].i = 0;
-
-	if((settings[USE_SSL].i = getbool("use_ssl")) == -1)
-		settings[USE_SSL].i = !settings[USE_TLS].i;
-
-	if((settings[CASESENSORT].i = getbool("case_sensitive_sorting")) == -1)
-		settings[CASESENSORT].i = 0;
-
-	if((settings[PORT].i = getint("port")) == -1)
-		/* so xmpp_connect will set the default port */
-		settings[PORT].i = 0;	
-
-	if((settings[PRIORITY].i = getint("priority")) == -1)
-		/* high default priority, since it's unstable
-		 * a lot of testing is needed :> */
-		settings[PRIORITY].i = 10;
-
-	/* extracting username from jid */
-	if(settings[JID].s) {
-		atpos = strchr(settings[JID].s, '@');
-		if(atpos)
-			settings[USERNAME].s = g_strndup(settings[JID].s,
-	                                                 atpos - settings[JID].s);
 	}
 	g_free(path);
 } /* loadfile */

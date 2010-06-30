@@ -69,7 +69,7 @@ compare_rows(GtkTreeModel *m, GtkTreeIter *a, GtkTreeIter *b, gpointer d)
 		gint ret;
 		gtk_tree_model_get(m, a, COL_NAME, &n1, -1);
 		gtk_tree_model_get(m, b, COL_NAME, &n2, -1);
-		if(get_settings(CASESENSORT).i)
+		if (get_settings_int(CASESENSORT))
 			ret = g_strcmp0(n1, n2);
 		else
 			ret = g_utf8_collate(n1, n2);

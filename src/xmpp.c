@@ -38,14 +38,14 @@ static int wantconnection = 1;
 static void
 connect() {
 	GError *err = NULL;
-	gchar *conf_server;
+	const gchar *conf_server;
 	wantconnection = 1;
-	if(lm_connection_is_open(connection)) {
+	if (lm_connection_is_open(connection)) {
 		ui_print("connect: connection alredy opened, aborting\n");
 		return;	
 	}
-	conf_server = get_settings(SERVER).s;
-	if(!conf_server) {
+	conf_server = get_settings_str(SERVER);
+	if (!conf_server) {
 		ui_print("ERROR: Insufficient configuration, "
 		         "connecting aborted (server not set)\n");
 		return;
@@ -120,9 +120,9 @@ connection_disconnect_cb(LmConnection *c, LmDisconnectReason reason,
 static void
 connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 	GError *err = NULL;
-	gchar *conf_passwd = get_settings(PASSWD).s;
-	gchar *conf_res = get_settings(RESOURCE).s;
-	gchar *conf_username = get_settings(USERNAME).s;
+	const gchar *conf_passwd = get_settings_str(PASSWD);
+	const gchar *conf_res = get_settings_str(RESOURCE);
+	const gchar *conf_username = get_settings_str(USERNAME);
 	if(success) {
 		ui_print("Connection established\n");
 		if(!conf_username) {
@@ -150,9 +150,9 @@ connection_open_cb(LmConnection *c, gboolean success, gpointer udata) {
 static void
 disconnect() {
 	LmMessage *m;
-	gchar *conf_server = get_settings(SERVER).s;
-	if(!connection)	return;
-	if(lm_connection_get_state(connection)
+	const gchar *conf_server = get_settings_str(SERVER);
+	if (!connection)	return;
+	if (lm_connection_get_state(connection)
 	   == LM_CONNECTION_STATE_AUTHENTICATED) {
 		m = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
 		                                 LM_MESSAGE_SUB_TYPE_UNAVAILABLE);
@@ -364,17 +364,17 @@ void
 xmpp_init(void) {
 	LmSSL *ssl;
 	int use_ssl, use_tls, port;
-	char *jid;
+	const gchar *jid;
 	config_init();
 	connection = lm_connection_new(NULL);
-	use_ssl = get_settings(USE_SSL).i;
-	use_tls = get_settings(USE_TLS).i;
-	jid = get_settings(JID).s;
-	port = get_settings(PORT).i;
-	if(use_ssl || use_tls) {
-		if(!lm_ssl_is_supported()) {
+	use_ssl = get_settings_int(USE_SSL);
+	use_tls = get_settings_int(USE_TLS);
+	jid = get_settings_str(JID);
+	port = get_settings_int(PORT);
+	if (use_ssl || use_tls) {
+		if (!lm_ssl_is_supported()) {
 			ui_print("Error: SSL not available\n");
-		} else if(use_ssl && use_tls) {
+		} else if (use_ssl && use_tls) {
 			ui_print("Error: You can't use ssl and tls at the same time");
 		} else {
 			ssl = lm_ssl_new(NULL, ssl_cb, NULL, NULL);
@@ -383,7 +383,7 @@ xmpp_init(void) {
 			lm_ssl_unref(ssl);
 		}
 	}
-	if(!port) {
+	if (!port) {
 		port = (use_ssl) ? LM_CONNECTION_DEFAULT_PORT_SSL
 		                 : LM_CONNECTION_DEFAULT_PORT;
 	}
@@ -416,19 +416,19 @@ xmpp_send_status(const gchar *to, XmppStatus s, const gchar *msg)
 {
 	LmMessage *p;
 	GError *err = NULL;
-	const char *status, *status_msg;
+	const gchar *status, *status_msg;
 	gchar *conf_priority;
-	if(s == STATUS_OFFLINE) {
+	if (s == STATUS_OFFLINE) {
 		wantconnection = 0;
 		disconnect();
 		return;
 	}
-	if(!connection || !lm_connection_is_open(connection)) {
+	if (!connection || !lm_connection_is_open(connection)) {
 		ui_print("Not connected, connecting\n");
 		connect();
 		return;
 	}
-	conf_priority = g_strdup_printf("%d", get_settings(PRIORITY).i);
+	conf_priority = g_strdup_printf("%d", get_settings_int(PRIORITY));
 	status_msg = (msg) ? msg : ui_get_status_msg();
 	p = lm_message_new_with_sub_type(to, LM_MESSAGE_TYPE_PRESENCE,
 	                                 (s == STATUS_OFFLINE)
