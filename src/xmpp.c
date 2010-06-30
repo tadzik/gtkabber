@@ -30,7 +30,7 @@ static gchar *xmpp_status_to_str(XmppStatus);
 /*************/
 
 /* global variables */
-static LmConnection *connection;
+static LmConnection *connection = NULL;
 static int initial_presence_sent = 0;
 static int wantconnection = 1;
 /********************/
@@ -39,11 +39,43 @@ static void
 connect() {
 	GError *err = NULL;
 	const gchar *conf_server;
+	LmSSL *ssl;
+	int use_ssl, use_tls, port;
+	const gchar *jid;
 	wantconnection = 1;
 	if (lm_connection_is_open(connection)) {
 		ui_print("connect: connection alredy opened, aborting\n");
 		return;	
 	}
+	if (connection == NULL)
+		connection = lm_connection_new(NULL);
+	use_ssl = get_settings_int(USE_SSL);
+	use_tls = get_settings_int(USE_TLS);
+	jid = get_settings_str(JID);
+	port = get_settings_int(PORT);
+	if (use_ssl || use_tls) {
+		if (!lm_ssl_is_supported()) {
+			ui_print("Error: SSL not available\n");
+		} else if (use_ssl && use_tls) {
+			ui_print("Error: You can't use ssl and tls at the same time");
+		} else {
+			ssl = lm_ssl_new(NULL, ssl_cb, NULL, NULL);
+			lm_ssl_use_starttls(ssl, !use_ssl, use_tls);
+			lm_connection_set_ssl(connection, ssl);
+			lm_ssl_unref(ssl);
+		}
+	}
+	if (!port) {
+		port = (use_ssl) ? LM_CONNECTION_DEFAULT_PORT_SSL
+		                 : LM_CONNECTION_DEFAULT_PORT;
+	}
+	lm_connection_set_port(connection, port);
+	lm_connection_set_jid(connection, jid);
+	lm_connection_set_keep_alive_rate(connection, 30);
+	lm_connection_set_disconnect_function(connection,
+					      connection_disconnect_cb,
+	                                      NULL, NULL);
+
 	conf_server = get_settings_str(SERVER);
 	if (!conf_server) {
 		ui_print("ERROR: Insufficient configuration, "
@@ -151,7 +183,8 @@ static void
 disconnect() {
 	LmMessage *m;
 	const gchar *conf_server = get_settings_str(SERVER);
-	if (!connection)	return;
+	if (connection == NULL)
+		return;
 	if (lm_connection_get_state(connection)
 	   == LM_CONNECTION_STATE_AUTHENTICATED) {
 		m = lm_message_new_with_sub_type(NULL, LM_MESSAGE_TYPE_PRESENCE,
@@ -163,6 +196,8 @@ disconnect() {
 		lm_connection_close(connection, NULL);
 		g_printerr("Disconnected\n");
 	}
+	lm_connection_unref(connection);
+	connection = NULL;
 } /* disconnect */
 
 static LmHandlerResult
@@ -355,45 +390,15 @@ ssl_cb(LmSSL *ssl, LmSSLStatus st, gpointer u)
 void
 xmpp_cleanup() {
 	disconnect();
-	if(connection) lm_connection_unref(connection);
+	if (connection) lm_connection_unref(connection);
 	xmpp_roster_cleanup();
 	config_cleanup();
 } /* xmpp_cleanup */
 
 void
 xmpp_init(void) {
-	LmSSL *ssl;
-	int use_ssl, use_tls, port;
-	const gchar *jid;
-	config_init();
-	connection = lm_connection_new(NULL);
-	use_ssl = get_settings_int(USE_SSL);
-	use_tls = get_settings_int(USE_TLS);
-	jid = get_settings_str(JID);
-	port = get_settings_int(PORT);
-	if (use_ssl || use_tls) {
-		if (!lm_ssl_is_supported()) {
-			ui_print("Error: SSL not available\n");
-		} else if (use_ssl && use_tls) {
-			ui_print("Error: You can't use ssl and tls at the same time");
-		} else {
-			ssl = lm_ssl_new(NULL, ssl_cb, NULL, NULL);
-			lm_ssl_use_starttls(ssl, !use_ssl, use_tls);
-			lm_connection_set_ssl(connection, ssl);
-			lm_ssl_unref(ssl);
-		}
-	}
-	if (!port) {
-		port = (use_ssl) ? LM_CONNECTION_DEFAULT_PORT_SSL
-		                 : LM_CONNECTION_DEFAULT_PORT;
-	}
-	lm_connection_set_port(connection, port);
-	lm_connection_set_jid(connection, jid);
-	lm_connection_set_keep_alive_rate(connection, 30);
-	lm_connection_set_disconnect_function(connection, connection_disconnect_cb,
-	                                      NULL, NULL);
-	if(wantconnection)
-		connect();
+	/* TODO: Maybe we can just get rid of this? */
+	connect();
 } /* xmpp_init */
 
 void
