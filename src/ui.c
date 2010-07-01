@@ -403,8 +403,10 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
 	                                      tab->tview);
 	/* setting up the entry field */
-	if (jid)
+	if (jid) {
 		tab->entry = mlentry_new(tab_entry_handler, tab);
+		gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tab->entry), GTK_WRAP_WORD_CHAR);
+	}
 	/* some vbox to put it together */
 	tab->vbox = gtk_vbox_new(FALSE, 0);
 	/* this will help us finding Chattab struct by some of its properties */
@@ -476,6 +478,7 @@ ui_setup(int *argc, char **argv[])
 	rview = ui_roster_setup();
 	setup_cbox(status_cbox);
 	status_entry = mlentry_new(status_changed, NULL);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(status_entry), GTK_WRAP_WORD_CHAR);
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(nbook), TRUE);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 	                               GTK_POLICY_AUTOMATIC,
