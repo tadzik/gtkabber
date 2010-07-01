@@ -159,8 +159,18 @@ infobar_response_cb(GtkInfoBar *i, gint r, gpointer j)
 static gboolean
 keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 {
-	/* We react only on Ctrl+something keys */
-	if(e->state & GDK_CONTROL_MASK) {
+	int i;
+	/* alt + num: changing tabs */
+	if (e->state & GDK_MOD1_MASK) {
+		for (i = 49; i < 58; i++) {
+			if ((int)e->keyval == i) {
+				gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook), i - 49);
+				return 0;
+			}
+		}
+	}
+	/* Ctrl+something actions */
+	if (e->state & GDK_CONTROL_MASK) {
 		switch(e->keyval) {
 		case 104: /* h */
 			ui_roster_toggle_offline();

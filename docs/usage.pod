@@ -39,6 +39,8 @@ This is where we shine :) Here's the list:
 
 =over 4
 
+=item B<M-[num]> - (Alt + num) change the current tab
+
 =item B<C-r> - (Control + r) focus the roster view. You can now select the buddy you want to chat with and press enter to begin
 
 =item B<C-M-r> - (Control + Alt + r) reload the config file
