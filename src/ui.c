@@ -406,6 +406,7 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 	if (jid) {
 		tab->entry = mlentry_new(tab_entry_handler, tab);
 		gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tab->entry), GTK_WRAP_WORD_CHAR);
+		gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(tab->entry), FALSE);
 	}
 	/* some vbox to put it together */
 	tab->vbox = gtk_vbox_new(FALSE, 0);
@@ -479,6 +480,7 @@ ui_setup(int *argc, char **argv[])
 	setup_cbox(status_cbox);
 	status_entry = mlentry_new(status_changed, NULL);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(status_entry), GTK_WRAP_WORD_CHAR);
+	gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(status_entry), FALSE);
 	gtk_notebook_set_scrollable(GTK_NOTEBOOK(nbook), TRUE);
 	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
 	                               GTK_POLICY_AUTOMATIC,
