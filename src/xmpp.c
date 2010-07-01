@@ -43,7 +43,7 @@ connect() {
 	int use_ssl, use_tls, port;
 	const gchar *jid;
 	wantconnection = 1;
-	if (lm_connection_is_open(connection)) {
+	if (connection && lm_connection_is_open(connection)) {
 		ui_print("connect: connection alredy opened, aborting\n");
 		return;	
 	}
