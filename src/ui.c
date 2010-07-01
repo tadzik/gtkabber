@@ -409,15 +409,13 @@ ui_create_tab(const gchar *jid, const gchar *title, gint active)
 		gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(tab->entry), FALSE);
 	}
 	/* some vbox to put it together */
-	tab->vbox = gtk_vbox_new(FALSE, 0);
+	tab->vbox = gtk_vpaned_new();
 	/* this will help us finding Chattab struct by some of its properties */
 	g_object_set_data(G_OBJECT(tab->vbox), "chattab-data", tab);
 	/* now let's put it all together */
-	gtk_container_add(GTK_CONTAINER(tab->vbox), tab->scrolled);
+	gtk_paned_pack1(GTK_PANED(tab->vbox), tab->scrolled, TRUE, FALSE);
 	if(jid) {
-		gtk_container_add(GTK_CONTAINER(tab->vbox), tab->entry);
-		gtk_box_set_child_packing(GTK_BOX(tab->vbox), tab->entry, FALSE,
-	                                  FALSE, 0, GTK_PACK_START);
+		gtk_paned_pack2(GTK_PANED(tab->vbox), tab->entry, FALSE, FALSE);
 	}
 	gtk_widget_show_all(tab->vbox);
 	/* aaand, launch! */

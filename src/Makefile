@@ -24,7 +24,7 @@ ui.o: types.h ui.c mlentry.h
 	@echo "Compiling ui.c"
 	@$(CC) $(CFLAGS) -c ui.c
 
-ui_roster.o: config.h types.h ui.c ui_roster.c xmpp.c xmpp_roster.c
+ui_roster.o: config.h types.h ui.h ui_roster.c ui_roster.h xmpp.h xmpp_roster.h
 	@echo "Compiling ui_roster.c"
 	@$(CC) $(CFLAGS) -c ui_roster.c
 
