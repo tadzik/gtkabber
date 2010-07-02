@@ -5,6 +5,7 @@
 #include <string.h>
 #include "config.h"
 #include "ui.h"
+#include "ui_tabs.h"
 #include "xmpp.h"
 #include "xmpp_roster.h"
 
@@ -242,7 +243,7 @@ row_clicked_cb(GtkTreeView *t, GtkTreePath *p, GtkTreeViewColumn *c, gpointer d)
 			jid = g_strdup(sb->jid);
 		else
 			jid = g_strdup_printf("%s/%s", sb->jid, res->name);
-		ui_create_tab(jid, sb->name, 1);
+		ui_tab_create(jid, sb->name, 1);
 		g_free(jid);
 	}
 	UNUSED(c);

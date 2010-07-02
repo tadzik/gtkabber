@@ -8,42 +8,24 @@
 #include "xmpp.h"
 #include "xmpp_roster.h"
 #include "ui_roster.h"
+#include "ui_tabs.h"
 #include "config.h"
 #include "mlentry.h"
 
-/* Here be everything ui-related, except the roster part,
- * which is in ui_roster.c
- * Also here the program starts and quits, as ui_setup()
- * is the first function called, and destroy() is to be the last one */
-
 /* functions */
-static void append_to_tab(Chattab *, const gchar *);
 static void cbox_changed_cb(GtkComboBox *, gpointer);
-static void close_tab(Chattab *);
 static void destroy(GtkWidget *, gpointer);
 static void focus_cb(GtkWidget *, GdkEventFocus *, gpointer);
-static void free_all_tabs(void);
-static Chattab *get_active_tab(void);
-static Chattab *get_tab_content(gint n);
 static void infobar_response_cb(GtkInfoBar *, gint, gpointer);
 static gboolean keypress_cb(GtkWidget *, GdkEventKey *, gpointer);
-static gboolean label_click_cb(GtkWidget *, GdkEventButton *, gpointer);
-static void scroll_tab_down(Chattab *);
 static void setup_cbox(GtkWidget *);
-static void set_wm_urgency(void);
 static void status_changed(GtkWidget *, const char *, gpointer);
 static void subscr_response_cb(GtkButton *, gpointer);
-static void tab_entry_handler(GtkWidget *, const char *, gpointer);
-static void tab_notify(Chattab *);
-static void tab_switch_cb(GtkNotebook *, GtkNotebookPage *, guint, gpointer);
 static void toggle_options(void);
 /*************/
 
 /* global variables */
-static Chattab *status_tab;
-static GtkWidget *toolbox, *nbook, *rview, 
-                 *status_cbox, *status_entry, *window;
-static GSList *tabs;
+static GtkWidget *toolbox, *rview, *status_cbox, *status_entry, *window;
 /********************/
 
 static void
@@ -54,26 +36,6 @@ action_cb(GtkButton *b, gpointer i)
 } /* action_cb */
 
 static void
-append_to_tab(Chattab *t, const gchar *s)
-{
-	/* writing string s at the end of tab t's buffer
-	 * internal function, for both status tab and chat tabs,
-	 * used by ui_print as well as ui_tab_print_message.
-	 * Just to not repeat myself */
-	GtkTextIter i;
-	time_t now;
-	gchar tstamp[11];
-	gchar *str;
-	now = time(NULL);
-	gtk_text_buffer_get_end_iter(t->buffer, &i);
-	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S]", localtime(&now));
-	str = g_strdup_printf("%s %s", tstamp, s);
-	gtk_text_buffer_insert(t->buffer, &i, str, -1);
-	g_free(str);
-	scroll_tab_down(t);
-} /* append_to_tab */
-
-static void
 cbox_changed_cb(GtkComboBox *e, gpointer p)
 {
 	xmpp_send_status(NULL, ui_get_status(), NULL);
@@ -82,25 +44,12 @@ cbox_changed_cb(GtkComboBox *e, gpointer p)
 } /* cbox_changed_cb */
 
 static void
-close_tab(Chattab *t)
-{
-	int pageno;
-	if(t->jid == NULL)
-		return;
-	pageno = gtk_notebook_page_num(GTK_NOTEBOOK(nbook), t->vbox);
-	g_free(t->jid);
-	g_free(t->title);
-	gtk_notebook_remove_page(GTK_NOTEBOOK(nbook), pageno);
-	tabs = g_slist_remove(tabs, (gconstpointer)t);
-} /* close_tab */
-
-static void
 destroy(GtkWidget *widget, gpointer data)
 {
 	xmpp_cleanup();
 	ui_roster_cleanup();
 	gtk_main_quit();
-	free_all_tabs();
+	ui_tab_cleanup();
 	UNUSED(widget);
 	UNUSED(data);
 } /* destroy */
@@ -108,8 +57,7 @@ destroy(GtkWidget *widget, gpointer data)
 static void
 focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 {
-	Chattab *tab = get_active_tab();
-	gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
+	ui_tab_focus();
 	if(gtk_window_get_urgency_hint(GTK_WINDOW(window))) {
 		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
 	}
@@ -117,34 +65,6 @@ focus_cb(GtkWidget *w, GdkEventFocus *f, gpointer p)
 	UNUSED(f);
 	UNUSED(p);
 } /* focus_cb */
-
-static void
-free_all_tabs(void)
-{
-	if(tabs) {
-		GSList *elem;
-		for(elem = tabs; elem; elem = elem->next) {
-			Chattab *t = (Chattab *)elem->data;
-			g_free(t->jid);
-			g_free(t->title);
-			g_free(t);
-		}
-		g_slist_free(tabs);
-	}
-} /* free_all_tabs*/
-
-static Chattab *
-get_active_tab(void)
-{
-	return get_tab_content(gtk_notebook_get_current_page(GTK_NOTEBOOK(nbook)));
-}
-
-static Chattab *
-get_tab_content(gint n)
-{
-	GtkWidget *child = gtk_notebook_get_nth_page(GTK_NOTEBOOK(nbook), n);
-	return (Chattab *)g_object_get_data(G_OBJECT(child), "chattab-data");
-} /* get_active_tab */
 
 static void
 infobar_response_cb(GtkInfoBar *i, gint r, gpointer j)
@@ -164,7 +84,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 	if (e->state & GDK_MOD1_MASK) {
 		for (i = 49; i < 58; i++) {
 			if ((int)e->keyval == i) {
-				gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook), i - 49);
+				ui_tab_set_page(i - 49);
 				return TRUE;
 			}
 		}
@@ -179,7 +99,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 			toggle_options();
 			return TRUE;
 		case 113: /* q */
-			close_tab(get_active_tab());
+			ui_tab_close(NULL);
 			return TRUE;
 		case 114: /* r */
 			if(e->state & GDK_MOD1_MASK) { /* with shift */
@@ -196,16 +116,13 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 				gtk_widget_grab_focus(status_cbox);
 			return TRUE;
 		case 116: /* t */
-			{
-				Chattab *tab = get_active_tab();
-				gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
-			}
+			ui_tab_focus();
 			return TRUE;
 		case 65365: /* PgUp */
-			gtk_notebook_prev_page(GTK_NOTEBOOK(nbook));
+			ui_tab_prev();
 			return TRUE;
 		case 65366: /* PgDn */
-			gtk_notebook_next_page(GTK_NOTEBOOK(nbook));
+			ui_tab_next();
 			return TRUE;
 		}
 	}
@@ -214,28 +131,6 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 	UNUSED(w);
 	UNUSED(u);
 } /* keypress_cb */
-
-static gboolean
-label_click_cb(GtkWidget *w, GdkEventButton *e, gpointer p)
-{
-	Chattab *tab;
-	if(e->button != 3)
-		return FALSE;
-	tab = (Chattab *)p;
-	close_tab(tab);
-	return TRUE;
-	UNUSED(w);
-} /* label_click_cb */
-
-static void
-scroll_tab_down(Chattab *tab)
-{
-	GtkAdjustment *adj;
-	gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(tab->tview), tab->mk,
-	                             0.0, FALSE, 0.0, 0.0);
-	adj = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(tab->scrolled));
-	gtk_adjustment_set_value(adj, adj->upper);
-} /* scroll_tab_down */
 
 static void
 setup_cbox(GtkWidget *cbox)
@@ -252,22 +147,10 @@ setup_cbox(GtkWidget *cbox)
 } /* setup_cbox */
 
 static void
-set_wm_urgency(void)
-{
-	if(gtk_window_is_active(GTK_WINDOW(window)))
-		return;
-	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
-		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
-	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
-} /* set_wm_urgency */
-
-static void
 status_changed(GtkWidget *w, const char *e, gpointer p)
 {
-	/* automagically focusing tab entry */
-	Chattab *tab = get_active_tab();
 	xmpp_send_status(NULL, ui_get_status(), NULL);
-	gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
+	ui_tab_focus();
 	UNUSED(w);
 	UNUSED(e);
 	UNUSED(p);
@@ -290,50 +173,6 @@ subscr_response_cb(GtkButton *b, gpointer t)
 	}
 	gtk_container_remove(GTK_CONTAINER(toolbox), table);
 } /* subscr_response_cb */
-
-static void
-tab_entry_handler(GtkWidget *mlentry, const char *t, gpointer p)
-{
-	/* Sending message to the interlocutor
-	 * and printing in in tab's buffer */
-	Chattab *tab = (Chattab *)p;
-	gchar *str;
-	if (*t == 0) return;
-	xmpp_send_message(tab->jid, t);
-	str = g_strdup_printf("--> %s\n", t);
-	append_to_tab(tab, str);
-	g_free(str);
-	mlentry_clear(mlentry);
-} /* tab_entry_handler */
-
-static void
-tab_notify(Chattab *t)
-{
-	gchar *markup;
-	Chattab *active = get_active_tab();
-	set_wm_urgency();
-	if(active->vbox == t->vbox)
-		/* this tab's alredy active */
-		return;
-	markup = g_strdup_printf("<b>%s</b>", t->title);
-	gtk_label_set_markup(GTK_LABEL(t->label), markup);
-	g_free(markup);
-} /* tab_notify */
-
-static void
-tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
-{	
-	Chattab *tab = get_tab_content(n);
-	if(tab->jid) {
-		gtk_label_set_text(GTK_LABEL(tab->label), tab->title);
-		gtk_widget_grab_focus(tab->entry);
-	} else {
-		gtk_widget_grab_focus(nbook);
-	}
-	UNUSED(b);
-	UNUSED(p);
-	UNUSED(d);
-} /* tab_switch_cb */
 
 static void
 toggle_options(void)
@@ -369,73 +208,6 @@ toggle_options(void)
 	shown = !shown;
 } /* toggle_options */
 
-Chattab *
-ui_create_tab(const gchar *jid, const gchar *title, gint active)
-{
-	/* Okay, here's a big one. It's called either when user clicks on the buddy
-	 * in the roster (ui_roster.c), or when the new message arrives (xmpp.c,
-	 * xmpp_message_handler), if supplied jid is NULL, we're creating
-	 * a status_tab */
-	Chattab *tab;
-	GtkWidget *evbox;
-	tab = g_malloc(sizeof(Chattab));
-	if(jid == NULL) {
-		tab->jid = NULL;
-		status_tab = tab;
-	}
-	else
-		tab->jid = g_strdup(jid);
-	tab->title = g_strdup(title);
-	/* setting up a place for a tab title */
-	evbox = gtk_event_box_new();
-	gtk_event_box_set_visible_window(GTK_EVENT_BOX(evbox), FALSE);
-	tab->label = gtk_label_new(tab->title);
-	gtk_container_add(GTK_CONTAINER(evbox), tab->label);
-	gtk_widget_show(tab->label);
-	g_signal_connect(G_OBJECT(evbox), "button-press-event",
-	                 G_CALLBACK(label_click_cb), (gpointer)tab);
-	/* creating GtkTextView for status messages */
-	tab->tview = gtk_text_view_new();
-	tab->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tab->tview));
-	gtk_text_view_set_editable(GTK_TEXT_VIEW(tab->tview), FALSE);
-	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(tab->tview), FALSE);
-	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tab->tview), GTK_WRAP_WORD);
-	tab->mk = gtk_text_buffer_get_mark(tab->buffer, "insert");
-	/* we're putting this in a scrolled window */
-	tab->scrolled = gtk_scrolled_window_new(NULL, NULL);
-	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(tab->scrolled),
-	                               GTK_POLICY_AUTOMATIC,
-	                               GTK_POLICY_AUTOMATIC);
-	gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(tab->scrolled),
-	                                      tab->tview);
-	/* setting up the entry field */
-	if (jid) {
-		tab->entry = mlentry_new(tab_entry_handler, tab);
-		gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tab->entry), GTK_WRAP_WORD_CHAR);
-		gtk_text_view_set_accepts_tab(GTK_TEXT_VIEW(tab->entry), FALSE);
-	}
-	/* some vbox to put it together */
-	tab->vbox = gtk_vpaned_new();
-	/* this will help us finding Chattab struct by some of its properties */
-	g_object_set_data(G_OBJECT(tab->vbox), "chattab-data", tab);
-	/* now let's put it all together */
-	gtk_paned_pack1(GTK_PANED(tab->vbox), tab->scrolled, TRUE, FALSE);
-	if(jid) {
-		gtk_paned_pack2(GTK_PANED(tab->vbox), tab->entry, FALSE, FALSE);
-	}
-	gtk_widget_show_all(tab->vbox);
-	/* aaand, launch! */
-	gtk_notebook_append_page(GTK_NOTEBOOK(nbook), tab->vbox, evbox);
-	tabs = g_slist_prepend(tabs, tab);
-	if(active && jid) {
-		gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook),
-	       	                              gtk_notebook_page_num(GTK_NOTEBOOK(nbook),
-	                                                            tab->vbox));
-		gtk_widget_grab_focus(tab->entry);
-	}
-	return tab;
-} /* ui_create_tab */
-
 XmppStatus
 ui_get_status(void)
 {
@@ -465,20 +237,17 @@ void
 ui_setup(int *argc, char **argv[])
 {
 	/* The first thing that occurs in the program, sets up the interface */
-	GtkWidget *hpaned, *leftbox, *rwin, *vbox;
+	GtkWidget *hpaned, *leftbox, *nbook, *rwin, *vbox;
 	gtk_init(argc, argv);
 	/* creating widgets */
 	hpaned = gtk_hpaned_new();
 	toolbox = gtk_vbox_new(FALSE, 0);
 	leftbox = gtk_vbox_new(FALSE, 0);
-	nbook = gtk_notebook_new();
+	nbook = ui_tab_init();
 	rwin = gtk_scrolled_window_new(NULL, NULL);
 	status_cbox = gtk_combo_box_new_text();
 	window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	vbox = gtk_vbox_new(FALSE, 0);
-	/* setting up status tab
-	 * needs to be almost first to make room for error messages */
-	ui_create_tab(NULL, "Status", 0);
 	/* setting up the more exciting ones */
 	rview = ui_roster_setup();
 	setup_cbox(status_cbox);
@@ -514,8 +283,6 @@ ui_setup(int *argc, char **argv[])
 	                 G_CALLBACK(keypress_cb), NULL);
 	g_signal_connect(G_OBJECT(window), "focus-in-event",
 	                 G_CALLBACK(focus_cb), NULL);
-	g_signal_connect(G_OBJECT(nbook), "switch-page",
-	                 G_CALLBACK(tab_switch_cb), NULL);
 	/*go go go!*/
 	gtk_widget_show_all(window);
 } /* ui_setup */
@@ -532,6 +299,16 @@ ui_set_status_msg(const char *m)
 	gtk_entry_set_text(GTK_ENTRY(status_entry), m);
 	xmpp_send_status(NULL, ui_get_status(), NULL);
 } /* ui_set_status_msg */
+
+void
+ui_set_wm_urgency(void)
+{
+	if(gtk_window_is_active(GTK_WINDOW(window)))
+		return;
+	if(gtk_window_get_urgency_hint(GTK_WINDOW(window)))
+		gtk_window_set_urgency_hint(GTK_WINDOW(window), FALSE);
+	gtk_window_set_urgency_hint(GTK_WINDOW(window), TRUE);
+} /* ui_set_wm_urgency */
 
 void
 ui_show_presence_query(const gchar *j)
@@ -552,7 +329,7 @@ ui_show_presence_query(const gchar *j)
 	g_signal_connect(G_OBJECT(ibar), "response",
 	                 G_CALLBACK(infobar_response_cb), (gpointer)jid);
 	gtk_widget_show_all(ibar);
-	set_wm_urgency();
+	ui_set_wm_urgency();
 	g_free(msg);
 } /* ui_show_presence_query */
 
@@ -610,50 +387,9 @@ ui_print(const char *msg, ...)
 	char *str;
 	va_start(ap, msg);
 	str = g_strdup_vprintf(msg, ap);
-	append_to_tab(status_tab, str);
+	ui_tab_append_text(NULL, str);
 	/* looks stupid? That's because old gcc is stupid */
 	g_printerr("%s", str);
 	va_end(ap);
 	g_free(str);
 } /* ui_print */
-
-void
-ui_tab_print_message(const char *jid, const char *msg)
-{
-	/* Called by xmpp_mesg_handler(), prints the incoming message
-	 * to the approprate chat tab */
-	Chattab *tab = NULL;
-	GSList *elem;
-	char *str;
-	for(elem = tabs; elem; elem = elem->next) {
-		Chattab *t = (Chattab *)elem->data;
-		if(g_strcmp0(t->jid, jid) == 0) {
-			tab = t;
-			break;
-		}
-	}
-	if(!tab) {
-		Buddy *sb;
-		char *shortjid, *slash;
-		/* We need to obtain the jid itself, w/o resource,
-		 * to lookup the appropriate chat tab */
-		slash = strchr(jid, '/');
-		shortjid = (slash) ? g_strndup(jid, slash-jid) : g_strdup(jid);
-		sb = xmpp_roster_find_by_jid(shortjid);
-		if(!sb) {
-			tab = ui_create_tab(jid, jid, 0);
-		} else {
-			tab = ui_create_tab(jid, sb->name, 0);
-		}
-		g_free(shortjid);
-	}
-	/* actual message printing - two lines of this whole function! */
-	str = g_strdup_printf("<== %s\n", msg);
-	append_to_tab(tab, str);
-	/* bolding tab title if it's not the status tab
-	 * (the function will check whether the tab is active or not,
-	 * we don't care about this) */
-	if(tab->jid)
-		tab_notify(tab);
-	g_free(str);
-} /* ui_tab_print_message */

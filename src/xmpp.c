@@ -5,6 +5,7 @@
 #include <string.h>
 #include "config.h"
 #include "ui.h"
+#include "ui_tabs.h"
 #include "ui_roster.h"
 #include "xmpp_roster.h"
 

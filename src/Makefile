@@ -1,9 +1,9 @@
 INCS=$(shell pkg-config --cflags gtk+-2.0 loudmouth-1.0 lua)
 LIBS=$(shell pkg-config --libs gtk+-2.0 loudmouth-1.0 lua)
 
-CC=gcc
+CC=clang
 CFLAGS=-ansi -Wall -Wextra -pedantic -O2 -g $(INCS)
-LD=gcc
+LD=clang
 LDFLAGS=$(LIBS)
 
 all: main
@@ -20,15 +20,19 @@ mlentry.o: mlentry.c mlentry.h
 	@echo "Compiling mlentry.c"
 	@$(CC) $(CFLAGS) -c mlentry.c
 
-ui.o: types.h ui.c mlentry.h
+ui.o: types.h ui.h ui.c mlentry.h ui_tabs.h
 	@echo "Compiling ui.c"
 	@$(CC) $(CFLAGS) -c ui.c
 
-ui_roster.o: config.h types.h ui.h ui_roster.c ui_roster.h xmpp.h xmpp_roster.h
+ui_roster.o: config.h types.h ui.h ui_tabs.h ui_roster.c ui_roster.h xmpp.h xmpp_roster.h
 	@echo "Compiling ui_roster.c"
 	@$(CC) $(CFLAGS) -c ui_roster.c
 
-xmpp.o: types.h ui.h xmpp.c config.h xmpp_roster.h
+ui_tabs.o: ui_tabs.h ui_tabs.c types.h mlentry.h
+	@echo "Compiling ui_tabs.c"
+	@$(CC) $(CFLAGS) -c ui_tabs.c
+
+xmpp.o: types.h ui.h ui_tabs.h xmpp.c config.h xmpp_roster.h
 	@echo "Compiling xmpp.c"
 	@$(CC) $(CFLAGS) -c xmpp.c
 
@@ -36,10 +40,10 @@ xmpp_roster.o: types.h ui.h xmpp.h xmpp_roster.c
 	@echo "Compiling xmpp_roster.c"
 	@$(CC) $(CFLAGS) -c xmpp_roster.c
 
-main: config.o main.o ui.o ui_roster.o xmpp.o xmpp_roster.o mlentry.o
+main: config.o main.o ui.o ui_roster.o ui_tabs.o xmpp.o xmpp_roster.o mlentry.o
 	@echo "Linking the whole project"
-	@$(LD) $(LDFLAGS) config.o main.o ui.o ui_roster.o mlentry.o \
-					xmpp.o xmpp_roster.o -o main
+	@$(LD) $(LDFLAGS) config.o main.o ui.o ui_roster.o ui_tabs.o \
+				mlentry.o xmpp.o xmpp_roster.o -o main
 
 clean:
 	@echo cleaning up...
