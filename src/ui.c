@@ -165,7 +165,7 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 		for (i = 49; i < 58; i++) {
 			if ((int)e->keyval == i) {
 				gtk_notebook_set_current_page(GTK_NOTEBOOK(nbook), i - 49);
-				return 0;
+				return TRUE;
 			}
 		}
 	}
@@ -174,13 +174,13 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 		switch(e->keyval) {
 		case 104: /* h */
 			ui_roster_toggle_offline();
-			break;
+			return TRUE;
 		case 111: /* o */
 			toggle_options();
-			break;
+			return TRUE;
 		case 113: /* q */
 			close_tab(get_active_tab());
-			break;
+			return TRUE;
 		case 114: /* r */
 			if(e->state & GDK_MOD1_MASK) { /* with shift */
 				ui_print("Config file reloaded\n");
@@ -188,23 +188,29 @@ keypress_cb(GtkWidget *w, GdkEventKey *e, gpointer u)
 			} else {
 				gtk_widget_grab_focus(rview);
 			}
-			break;
+			return TRUE;
 		case 115: /* s */
 			if(e->state & GDK_MOD1_MASK) /* with alt */
 				gtk_widget_grab_focus(status_entry);
 			else
 				gtk_widget_grab_focus(status_cbox);
-			break;
+			return TRUE;
 		case 116: /* t */
 			{
 				Chattab *tab = get_active_tab();
 				gtk_widget_grab_focus(tab->jid ? tab->entry : nbook);
 			}
-			break;
+			return TRUE;
+		case 65365: /* PgUp */
+			gtk_notebook_prev_page(GTK_NOTEBOOK(nbook));
+			return TRUE;
+		case 65366: /* PgDn */
+			gtk_notebook_next_page(GTK_NOTEBOOK(nbook));
+			return TRUE;
 		}
 	}
 
-	return 0;
+	return FALSE;
 	UNUSED(w);
 	UNUSED(u);
 } /* keypress_cb */
