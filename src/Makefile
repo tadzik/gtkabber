@@ -1,9 +1,9 @@
 INCS=$(shell pkg-config --cflags gtk+-2.0 loudmouth-1.0 lua)
 LIBS=$(shell pkg-config --libs gtk+-2.0 loudmouth-1.0 lua)
 
-CC=clang
+CC?=gcc
 CFLAGS=-ansi -Wall -Wextra -pedantic -O2 -g $(INCS)
-LD=clang
+LD=$(CC)
 LDFLAGS=$(LIBS)
 
 all: main
