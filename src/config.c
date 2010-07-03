@@ -116,7 +116,7 @@ fun_print(lua_State *l)
 	if (txt)
 		ui_print(txt);
 	return 0;
-} /* fun_sendmsg */
+} /* fun_print */
 
 static int
 fun_sendmsg(lua_State *l)
@@ -205,7 +205,7 @@ get_settings_int(Settings s)
 	default:
 		return -1;
 	}
-}
+} /* get_settings_int */
 
 const char *
 get_settings_str(Settings s)
