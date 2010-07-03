@@ -4,7 +4,8 @@
 #include <gtk/gtk.h>
 
 int main(int argc, char *argv[]) {
-	config_init();
+	if (config_init())
+		return 1;
 	ui_setup(&argc, &argv);
 	xmpp_init();
 	gtk_main();

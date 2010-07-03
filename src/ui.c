@@ -388,7 +388,6 @@ ui_print(const char *msg, ...)
 	va_start(ap, msg);
 	str = g_strdup_vprintf(msg, ap);
 	ui_tab_append_text(NULL, str);
-	/* looks stupid? That's because old gcc is stupid */
 	g_printerr("%s", str);
 	va_end(ap);
 	g_free(str);

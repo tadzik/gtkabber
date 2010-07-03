@@ -24,7 +24,7 @@ static int getbool(const gchar *);
 static int getint(const gchar *);
 static gchar *getstr(const gchar *);
 static void loadactions(void);
-static void loadfile(void);
+static void loadfile(GError **);
 static void loadlib(void);
 /*************/
 
@@ -85,15 +85,20 @@ config_cleanup(void)
 	g_array_free(actions, TRUE);
 }
 
-void
+int
 config_init(void) 
 {
-	/* This one opens rc file, reads its contents and passes the lines
-	 * to commands_exec() */	
-	loadfile();
+	GError *err = NULL;
+	loadfile(&err);
+	if (err) {
+		g_printerr("%s\n", err->message);
+		g_error_free(err);
+		return 1;
+	}
 	loadlib();
 	actions = g_array_new(FALSE, FALSE, sizeof(gchar *));
 	loadactions();
+	return 0;
 } /* config_parse_rcfile */
 
 void
@@ -263,7 +268,7 @@ loadactions(void)
 } /* loadactions */
 
 static void
-loadfile(void)
+loadfile(GError **e)
 {
 	char *path;
 	lua = lua_open();
@@ -271,10 +276,10 @@ loadfile(void)
 	path = g_strdup_printf("%s/.config/gtkabber.lua", g_getenv("HOME"));
 	/* load the file and run it */
 	if (luaL_loadfile(lua, path) || lua_pcall(lua, 0, 0, 0)) {
-		ui_print("Couldn't parse the configuration file %s: %s",
-		                lua_tostring(lua, -1));
+		*e = g_error_new(1, 1,
+				"Couldn't parse the configuration file %s: %s",
+		                path, lua_tostring(lua, -1));
 		lua_pop(lua, 1);
-		return;
 	}
 	g_free(path);
 } /* loadfile */
