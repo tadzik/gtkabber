@@ -28,7 +28,7 @@ ui_roster.o: config.h types.h ui.h ui_tabs.h ui_roster.c ui_roster.h xmpp.h xmpp
 	@echo "Compiling ui_roster.c"
 	@$(CC) $(CFLAGS) -c ui_roster.c
 
-ui_tabs.o: ui_tabs.h ui_tabs.c types.h mlentry.h
+ui_tabs.o: config.h ui_tabs.h ui_tabs.c types.h mlentry.h
 	@echo "Compiling ui_tabs.c"
 	@$(CC) $(CFLAGS) -c ui_tabs.c
 

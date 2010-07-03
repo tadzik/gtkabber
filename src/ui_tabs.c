@@ -1,3 +1,4 @@
+#include "config.h"
 #include "ui.h"
 #include "ui_tabs.h"
 #include "xmpp.h"
@@ -27,7 +28,7 @@ tab_entry_handler(GtkWidget *mlentry, const char *t, gpointer p)
 	gchar *str;
 	if (*t == 0) return;
 	xmpp_send_message(tab->jid, t);
-	str = g_strdup_printf("--> %s\n", t);
+	str = g_strdup_printf("%s: %s\n", get_settings_str(USERNAME), t);
 	ui_tab_append_text(tab, str);
 	g_free(str);
 	mlentry_clear(mlentry);
@@ -239,7 +240,13 @@ ui_tab_print_message(const char *jid, const char *msg)
 	 * to the approprate chat tab */
 	Chattab *tab = NULL;
 	GSList *elem;
-	char *str;
+	char *str, *shortjid, *slash;
+	Buddy *sb = NULL;
+	/* We need to obtain the jid itself, w/o resource */
+	slash = strchr(jid, '/');
+	shortjid = (slash) ? g_strndup(jid, slash-jid) : g_strdup(jid);
+	sb = xmpp_roster_find_by_jid(shortjid);
+	
 	for(elem = tabs; elem; elem = elem->next) {
 		Chattab *t = (Chattab *)elem->data;
 		if(g_strcmp0(t->jid, jid) == 0) {
@@ -247,15 +254,9 @@ ui_tab_print_message(const char *jid, const char *msg)
 			break;
 		}
 	}
+
 	if(!tab) {
-		Buddy *sb;
-		char *shortjid, *slash;
-		/* We need to obtain the jid itself, w/o resource,
-		 * to lookup the appropriate chat tab */
-		slash = strchr(jid, '/');
-		shortjid = (slash) ? g_strndup(jid, slash-jid) : g_strdup(jid);
-		sb = xmpp_roster_find_by_jid(shortjid);
-		if(!sb) {
+		if (sb == NULL) {
 			tab = ui_tab_create(jid, jid, 0);
 		} else {
 			tab = ui_tab_create(jid, sb->name, 0);
@@ -263,7 +264,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 		g_free(shortjid);
 	}
 	/* actual message printing - two lines of this whole function! */
-	str = g_strdup_printf("<== %s\n", msg);
+	str = g_strdup_printf("%s: %s\n", (sb) ? sb->name : jid, msg);
 	ui_tab_append_text(tab, str);
 	/* bolding tab title if it's not the status tab
 	 * (the function will check whether the tab is active or not,
