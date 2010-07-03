@@ -20,6 +20,10 @@ mlentry.o: mlentry.c mlentry.h
 	@echo "Compiling mlentry.c"
 	@$(CC) $(CFLAGS) -c mlentry.c
 
+gtk_tbim.o: gtk_tbim.h gtk_tbim.c
+	@echo "Compiling gtk_tbim.c"
+	@$(CC) $(CFLAGS) -c gtk_tbim.c
+
 ui.o: types.h ui.h ui.c mlentry.h ui_tabs.h
 	@echo "Compiling ui.c"
 	@$(CC) $(CFLAGS) -c ui.c
@@ -28,7 +32,7 @@ ui_roster.o: config.h types.h ui.h ui_tabs.h ui_roster.c ui_roster.h xmpp.h xmpp
 	@echo "Compiling ui_roster.c"
 	@$(CC) $(CFLAGS) -c ui_roster.c
 
-ui_tabs.o: config.h ui_tabs.h ui_tabs.c types.h mlentry.h
+ui_tabs.o: config.h ui_tabs.h ui_tabs.c types.h mlentry.h gtk_tbim.h
 	@echo "Compiling ui_tabs.c"
 	@$(CC) $(CFLAGS) -c ui_tabs.c
 
@@ -40,9 +44,9 @@ xmpp_roster.o: types.h ui.h xmpp.h xmpp_roster.c
 	@echo "Compiling xmpp_roster.c"
 	@$(CC) $(CFLAGS) -c xmpp_roster.c
 
-main: config.o main.o ui.o ui_roster.o ui_tabs.o xmpp.o xmpp_roster.o mlentry.o
+main: config.o main.o ui.o ui_roster.o ui_tabs.o xmpp.o xmpp_roster.o mlentry.o gtk_tbim.o
 	@echo "Linking the whole project"
-	@$(LD) $(LDFLAGS) config.o main.o ui.o ui_roster.o ui_tabs.o \
+	@$(LD) $(LDFLAGS) config.o main.o ui.o ui_roster.o ui_tabs.o gtk_tbim.o \
 				mlentry.o xmpp.o xmpp_roster.o -o main
 
 clean:

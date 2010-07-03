@@ -4,6 +4,7 @@
 #include "xmpp.h"
 #include "xmpp_roster.h"
 #include "mlentry.h"
+#include "gtk_tbim.h"
 #include <stdarg.h>
 #include <string.h>
 
@@ -94,8 +95,8 @@ tab_switch_cb(GtkNotebook *b, GtkNotebookPage *p, guint n, gpointer d)
 
 /* end of static functions */
 
-void
-ui_tab_append_text(Chattab *t, const gchar *s)
+static void
+ui_tab_append_anyhow(Chattab *t, const gchar *s, void (*fun)(GtkTextBuffer *, GtkTextIter *, const gchar *, gint))
 {
 	/* timestamp is always added */
 	GtkTextIter i;
@@ -107,10 +108,22 @@ ui_tab_append_text(Chattab *t, const gchar *s)
 	gtk_text_buffer_get_end_iter(t->buffer, &i);
 	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S]", localtime(&now));
 	str = g_strdup_printf("%s %s", tstamp, s);
-	gtk_text_buffer_insert(t->buffer, &i, str, -1);
+	(*fun)(t->buffer, &i, str, -1);
 	g_free(str);
 	tab_scroll_down(t);
+}
+
+void
+ui_tab_append_text(Chattab *t, const gchar *s)
+{
+	ui_tab_append_anyhow(t, s, gtk_text_buffer_insert);
 } /* ui_tab_append_text */
+
+void
+ui_tab_append_markup(Chattab *t, const gchar *s)
+{
+	ui_tab_append_anyhow(t, s, gtk_tbim);
+} /* ui_tab_append_markup */
 
 void
 ui_tab_cleanup(void)
@@ -264,8 +277,8 @@ ui_tab_print_message(const char *jid, const char *msg)
 		g_free(shortjid);
 	}
 	/* actual message printing - two lines of this whole function! */
-	str = g_strdup_printf("%s: %s\n", (sb) ? sb->name : jid, msg);
-	ui_tab_append_text(tab, str);
+	str = g_strdup_printf("<b>%s</b>: %s\n", (sb) ? sb->name : jid, msg);
+	ui_tab_append_markup(tab, str);
 	/* bolding tab title if it's not the status tab
 	 * (the function will check whether the tab is active or not,
 	 * we don't care about this) */
