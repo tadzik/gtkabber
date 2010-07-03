@@ -308,8 +308,9 @@ loadlib(void)
 } /* loadlib */
 
 void
-lua_msg_callback(const gchar *j, const gchar *m)
+lua_msg_callback(const gchar *f, const gchar *t, const gchar *m)
 {
+	if (f == NULL) f = get_settings_str(JID);
 	lua_getglobal(lua, "message_cb");
 	if (lua_isnil(lua, 1)) {
 		lua_pop(lua, 1);
@@ -320,9 +321,10 @@ lua_msg_callback(const gchar *j, const gchar *m)
 		lua_pop(lua, 1);
 		return;
 	}
-	lua_pushstring(lua, j);
+	lua_pushstring(lua, f);
+	lua_pushstring(lua, t);
 	lua_pushstring(lua, m);
-	if(lua_pcall(lua, 2, 0, 0)) {
+	if(lua_pcall(lua, 3, 0, 0)) {
 		ui_print("lua: error running message_cb: %s\n",
 		                lua_tostring(lua, -1));
 		lua_pop(lua, 1);

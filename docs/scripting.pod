@@ -14,9 +14,9 @@ Callback are lua functions you write to react on certain Gtkabber events. Just w
 
 =over 4
 
-=item B<message_cb (jid, msg)>
+=item B<message_cb (from, to, msg)>
 
-called when you receive a message via xmpp. The 'jid' parameter contains the full jabber id (with resource) of the sender, while 'msg' keeps the message body
+called when the message passes, there or another way. 'from' and 'to' keep the sender's and receiver's jid (with a resource), msg keeps the message body
 
 =item B<presence_cb (jid, status, status_msg)>
 

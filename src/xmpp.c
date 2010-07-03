@@ -226,13 +226,14 @@ static LmHandlerResult
 mesg_handler(LmMessageHandler *h, LmConnection *c, LmMessage *m,
              gpointer udata)
 {
-	const char *from, *body;
+	const char *from, *to, *body;
 	LmMessageNode *node;
 	from = lm_message_node_get_attribute(m->node, "from");
+	to = lm_message_node_get_attribute(m->node, "to");
 	node = lm_message_node_get_child(m->node, "body");
 	if(node && (body = lm_message_node_get_value(node))) {
 		ui_tab_print_message(from, body);
-		lua_msg_callback(from, body);
+		lua_msg_callback(from, to, body);
 	}
 	/* we're actually ignoring <subject> and <thread> elements,
 	 * as I've never actually seen them being used. If you do, and you care,
@@ -429,6 +430,7 @@ xmpp_send_message(const char *to, const char *msg)
 		ui_print("Error sending message: %s\n", err->message);
 		g_error_free(err);
 	}
+	lua_msg_callback(NULL, to, msg);
 	lm_message_unref(m);
 } /* xmpp_send_message */
 

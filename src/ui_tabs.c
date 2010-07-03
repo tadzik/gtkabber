@@ -101,7 +101,7 @@ ui_tab_append_text(Chattab *t, const gchar *s)
 	time_t now;
 	gchar tstamp[11];
 	gchar *str;
-	if (t == NULL) t = ACTIVE_TAB;
+	if (t == NULL) t = status_tab;
 	now = time(NULL);
 	gtk_text_buffer_get_end_iter(t->buffer, &i);
 	strftime(tstamp, sizeof(tstamp), "[%H:%M:%S]", localtime(&now));
