@@ -5,6 +5,7 @@
 
 Chattab *ui_tab_create(const gchar *, const gchar *, gint);
 void ui_tab_append_text(Chattab *, const gchar *);
+void ui_tab_append_markup(Chattab *, const gchar *);
 void ui_tab_cleanup(void);
 void ui_tab_close(Chattab *);
 void ui_tab_focus(void);

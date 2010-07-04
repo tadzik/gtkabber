@@ -16,11 +16,18 @@ Callback are lua functions you write to react on certain Gtkabber events. Just w
 
 =item B<message_cb (from, to, msg)>
 
-called when the message passes, there or another way. 'from' and 'to' keep the sender's and receiver's jid (with a resource), msg keeps the message body
+called when the message passes, there or another way. 'from' and 'to' keep the sender's and receiver's jid (with a resource),
+msg keeps the message body
+
+=item B<message_markup (who, what)>
+
+this function lets you modify what gets printed in the chat tab on the incoming (or outcoming) message instead of the default <nick>: <msg>.
+Returning C<nil> leaves the default markup unchanged. See some nice and friendly examples in the examples section.
 
 =item B<presence_cb (jid, status, status_msg)>
 
-called on the presence arrival. Again, 'jid' contains the full jabber id (with resource), status is the current buddy's status type (online, free for chat, away, not available, do not disturb or offline), status_msg keeps the status message (e.g. "Gone fishing")
+called on the presence arrival. Again, 'jid' contains the full jabber id (with resource), status is the current buddy's status type
+(online, free for chat, away, not available, do not disturb or offline), status_msg keeps the status message (e.g. "Gone fishing")
 
 =item B<post_connect ()>
 
@@ -30,7 +37,8 @@ called after a successful connection. You can set initial status in here, send s
 
 =head2 Gtkabber API
 
-Callback won't be as fun and useful if we had no gtkabber specific functions to call. All the functions are prefixed with 'gtkabber.' to avoid possible conflicts
+Callback won't be as fun and useful if we had no gtkabber specific functions to call. All the functions are prefixed with 'gtkabber.'
+to avoid possible conflicts
 
 =over 4
 
@@ -105,6 +113,15 @@ See also 'actions' array example in "User-defined actions" section.
  -- keep naggers away
  function post_connect (jid, msg)
  	gtkabber.sendstatus("foobar@example.com", "dnd")
+ end
+
+ -- modify the message printing format
+ function message_markup (who, what)
+ 	-- this one changes the outcoming messages only (if your xmpp username is johndoe)
+ 	ret = nil
+	if (who == "johndoe") then
+		ret = "<u>I said</u>: " .. what "\n"
+	end
  end
 
 =back

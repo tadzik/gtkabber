@@ -29,8 +29,10 @@ tab_entry_handler(GtkWidget *mlentry, const char *t, gpointer p)
 	gchar *str;
 	if (*t == 0) return;
 	xmpp_send_message(tab->jid, t);
-	str = g_strdup_printf("%s: %s\n", get_settings_str(USERNAME), t);
-	ui_tab_append_text(tab, str);
+	str = lua_msg_markup(get_settings_str(USERNAME), t);
+	if (str == NULL)
+		str = g_strdup_printf("%s: %s\n", get_settings_str(USERNAME), t);
+	ui_tab_append_markup(tab, str);
 	g_free(str);
 	mlentry_clear(mlentry);
 } /* tab_entry_handler */
@@ -277,12 +279,14 @@ ui_tab_print_message(const char *jid, const char *msg)
 		g_free(shortjid);
 	}
 	/* actual message printing - two lines of this whole function! */
-	str = g_strdup_printf("<b>%s</b>: %s\n", (sb) ? sb->name : jid, msg);
+	str = lua_msg_markup((sb) ? sb->name : jid, msg);
+	if (str == NULL)
+		str = g_strdup_printf("<b>%s</b>: %s\n", (sb) ? sb->name : jid, msg);
 	ui_tab_append_markup(tab, str);
 	/* bolding tab title if it's not the status tab
 	 * (the function will check whether the tab is active or not,
 	 * we don't care about this) */
-	if(tab->jid)
+	if (tab->jid)
 		tab_notify(tab);
 	g_free(str);
 } /* ui_tab_print_message */

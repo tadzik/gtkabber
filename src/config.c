@@ -331,6 +331,33 @@ lua_msg_callback(const gchar *f, const gchar *t, const gchar *m)
 	}
 } /* lua_msg_callback */
 
+gchar *
+lua_msg_markup(const gchar *n, const gchar *t)
+{
+	gchar *ret;
+	lua_getglobal(lua, "message_markup");
+	if (lua_isnil(lua, 1)) {
+		lua_pop(lua, 1);
+		return NULL;
+	}
+	if (lua_isfunction(lua, 1) == 0) {
+		ui_print("lua error: 'message_markup' is not a function!\n");
+		lua_pop(lua, 1);
+		return NULL;
+	}
+	lua_pushstring(lua, n);
+	lua_pushstring(lua, t);
+	if(lua_pcall(lua, 2, 1, 0)) {
+		ui_print("lua: error running message_cb: %s\n",
+		                lua_tostring(lua, -1));
+		ret = NULL;
+	} else {
+		ret = g_strdup(lua_tostring(lua, -1));
+	}
+	lua_pop(lua, 1);
+	return ret;
+} /* lua_msg_markup */
+
 void
 lua_post_connect(void)
 {
