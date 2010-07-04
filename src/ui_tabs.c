@@ -26,14 +26,16 @@ tab_entry_handler(GtkWidget *mlentry, const char *t, gpointer p)
 	/* Sending message to the interlocutor
 	 * and printing in in tab's buffer */
 	Chattab *tab = (Chattab *)p;
-	gchar *str;
+	gchar *str, *et;
 	if (*t == 0) return;
+	et = g_markup_escape_text(t, -1);
 	xmpp_send_message(tab->jid, t);
-	str = lua_msg_markup(get_settings_str(USERNAME), t);
+	str = lua_msg_markup(get_settings_str(USERNAME), et);
 	if (str == NULL)
 		str = g_strdup_printf("%s: %s\n", get_settings_str(USERNAME), t);
 	ui_tab_append_markup(tab, str);
 	g_free(str);
+	g_free(et);
 	mlentry_clear(mlentry);
 } /* tab_entry_handler */
 
@@ -255,7 +257,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 	 * to the approprate chat tab */
 	Chattab *tab = NULL;
 	GSList *elem;
-	char *str, *shortjid, *slash;
+	char *str, *shortjid, *slash, *emsg;
 	Buddy *sb = NULL;
 	/* We need to obtain the jid itself, w/o resource */
 	slash = strchr(jid, '/');
@@ -279,7 +281,8 @@ ui_tab_print_message(const char *jid, const char *msg)
 		g_free(shortjid);
 	}
 	/* actual message printing - two lines of this whole function! */
-	str = lua_msg_markup((sb) ? sb->name : jid, msg);
+	emsg = g_markup_escape_text(msg, -1);
+	str = lua_msg_markup((sb) ? sb->name : jid, emsg);
 	if (str == NULL)
 		str = g_strdup_printf("<b>%s</b>: %s\n", (sb) ? sb->name : jid, msg);
 	ui_tab_append_markup(tab, str);
@@ -289,6 +292,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 	if (tab->jid)
 		tab_notify(tab);
 	g_free(str);
+	g_free(emsg);
 } /* ui_tab_print_message */
 
 void ui_tab_set_page(gint n)
