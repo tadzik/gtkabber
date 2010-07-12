@@ -284,7 +284,7 @@ ui_tab_print_message(const char *jid, const char *msg)
 	emsg = g_markup_escape_text(msg, -1);
 	str = lua_msg_markup((sb) ? sb->name : jid, emsg);
 	if (str == NULL)
-		str = g_strdup_printf("<b>%s</b>: %s\n", (sb) ? sb->name : jid, msg);
+		str = g_strdup_printf("<b>%s</b>: %s\n", (sb) ? sb->name : jid, emsg);
 	ui_tab_append_markup(tab, str);
 	/* bolding tab title if it's not the status tab
 	 * (the function will check whether the tab is active or not,
