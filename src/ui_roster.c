@@ -6,7 +6,7 @@
 #include "config.h"
 #include "ui.h"
 #include "ui_tabs.h"
-#include "xmpp.h"
+#include "xmpp_pres.h"
 #include "xmpp_roster.h"
 
 /* Here goes everything related to roster widget in the user interface

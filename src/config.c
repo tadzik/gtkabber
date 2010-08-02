@@ -1,6 +1,7 @@
 #include "config.h"
 
-#include "xmpp.h"
+#include "xmpp_pres.h"
+#include "xmpp_mesg.h"
 #include "ui.h"
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -124,7 +125,7 @@ fun_sendmsg(lua_State *l)
 	const gchar *to, *body;
 	to = lua_tostring(l, 1);
 	body = lua_tostring(l, 2);
-	xmpp_send_message(to, body);
+	xmpp_mesg_send(to, body);
 	return 0;
 } /* fun_sendmsg */
 

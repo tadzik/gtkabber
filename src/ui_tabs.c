@@ -1,7 +1,7 @@
 #include "config.h"
 #include "ui.h"
 #include "ui_tabs.h"
-#include "xmpp.h"
+#include "xmpp_mesg.h"
 #include "xmpp_roster.h"
 #include "mlentry.h"
 #include "gtk_tbim.h"
@@ -29,7 +29,7 @@ tab_entry_handler(GtkWidget *mlentry, const char *t, gpointer p)
 	gchar *str, *et;
 	if (*t == 0) return;
 	et = g_markup_escape_text(t, -1);
-	xmpp_send_message(tab->jid, t);
+	xmpp_mesg_send(tab->jid, t);
 	str = lua_msg_markup(get_settings_str(USERNAME), et);
 	if (str == NULL)
 		str = g_strdup_printf("%s: %s\n", get_settings_str(USERNAME), t);

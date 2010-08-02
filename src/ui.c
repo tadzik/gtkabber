@@ -5,7 +5,8 @@
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
-#include "xmpp.h"
+#include "xmpp_conn.h"
+#include "xmpp_pres.h"
 #include "xmpp_roster.h"
 #include "ui_roster.h"
 #include "ui_tabs.h"

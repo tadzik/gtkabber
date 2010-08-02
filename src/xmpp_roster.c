@@ -5,7 +5,7 @@
 #include "ui.h"
 #include "ui_roster.h"
 #include "types.h"
-#include "xmpp.h"
+#include "xmpp_conn.h"
 
 /* global vars */
 GSList *roster;

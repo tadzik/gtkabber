@@ -1,6 +1,6 @@
 #include "config.h"
 #include "ui.h"
-#include "xmpp.h"
+#include "xmpp_conn.h"
 #include <gtk/gtk.h>
 
 int main(int argc, char *argv[]) {
