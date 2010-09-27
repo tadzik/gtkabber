@@ -2,14 +2,15 @@
 #define UI_H
 
 #include <gtk/gtk.h>
+#include "ui_tabs.h"
 
 typedef struct {
     GtkWidget *window,
               *roster,
               *status_box,
               *status_entry,
-              *tabs,
               *toolbox;
+    Notebook *tabs;
 } Ui;
 
 Ui *ui_init(int *argc, char **argv[]);
