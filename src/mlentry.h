@@ -1,6 +1,17 @@
+#ifndef MLENTRY_H
+#define MLENTRY_H
 #include <gtk/gtk.h>
 
-void mlentry_clear(GtkWidget *);
-const char * mlentry_get_text(GtkWidget *);
-GtkWidget * mlentry_new(void (*fun)(GtkWidget *, const char *, gpointer),
-			gpointer data);
+struct _Mlentry {
+    GtkWidget *widget;
+    gpointer udata;
+    void (*callback)(struct _Mlentry *, const char *);
+};
+typedef struct _Mlentry Mlentry;
+
+void mlentry_clear(Mlentry *);
+const char * mlentry_get_text(Mlentry *);
+Mlentry * mlentry_new(void (*fun)(Mlentry *, const gchar *, gpointer),
+                        gpointer data);
+
+#endif

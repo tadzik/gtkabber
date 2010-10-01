@@ -21,7 +21,11 @@ typedef struct {
     Chattab *status_tab;
 } Notebook;
 
+void ui_tabs_append_text(Chattab *, const gchar *);
+void ui_tabs_append_markup(Chattab *, const gchar *);
+void ui_tabs_cleanup(Notebook *);
 Chattab *ui_tabs_create(Notebook *, const gchar *, const gchar *, gint);
+void ui_tabs_log(Notebook *, const gchar *);
 Notebook *ui_tabs_new(void);
 
 #endif

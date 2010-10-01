@@ -3,20 +3,23 @@
 #include "ui_tabs.h"
 
 static void cbox_changed_cb(GtkComboBox *);
-static void destroy(GtkWidget *, gpointer);
+static void destroy(void);
 static void setup_cbox(GtkWidget *);
+
+static Ui *ui; // This is a cheat, but Ui is a singleton anyway
 
 static void
 cbox_changed_cb(GtkComboBox *e)
 {
-    DEBUG("Status changed to %d\n", gtk_combo_box_get_active(e));
+    ui_print("Status changed to %d\n", gtk_combo_box_get_active(e));
 } /* cbox_changed_cb */
 
-static void destroy(GtkWidget *w, gpointer d)
+static void destroy(void)
 {
-    g_free(d);
     gtk_main_quit();
-    UNUSED(w);
+    g_free(ui->status_entry);
+    ui_tabs_cleanup(ui->tabs);
+    g_free(ui);
 } /* destroy */
 
 static void
@@ -33,11 +36,20 @@ setup_cbox(GtkWidget *cbox)
                      G_CALLBACK(cbox_changed_cb), NULL);
 } /* setup_cbox */
 
+static void
+statusentry_cb(Mlentry *e, const gchar *str, gpointer u)
+{
+    UNUSED(e); //TODO?
+    ui_print("Changing status to %s\n", str); // TODO, of course
+    UNUSED(u);
+} /* statusentry_cb */
+
 Ui *
 ui_init(int *argc, char **argv[])
 {
     GtkWidget *hpaned, *left, *rwin, *vbox;
-    Ui *new = g_malloc(sizeof(Ui));
+    g_assert(!ui); // ui is a singleton
+    Ui *new = ui = g_malloc(sizeof(Ui));
     gtk_init(argc, argv);
 
     /* creating */
@@ -59,7 +71,7 @@ ui_init(int *argc, char **argv[])
     new->status_box = gtk_combo_box_new_text();
     setup_cbox(new->status_box);
 
-    new->status_entry = gtk_entry_new(); /* TODO should be mlentry */
+    new->status_entry = mlentry_new(statusentry_cb, NULL);
 
     new->tabs = ui_tabs_new();
 
@@ -79,10 +91,10 @@ ui_init(int *argc, char **argv[])
 
     gtk_container_add(GTK_CONTAINER(left), rwin);
     gtk_container_add(GTK_CONTAINER(left), new->status_box);
-    gtk_container_add(GTK_CONTAINER(left), new->status_entry);
+    gtk_container_add(GTK_CONTAINER(left), new->status_entry->widget);
     gtk_box_set_child_packing(GTK_BOX(left), new->status_box,
                               FALSE, FALSE, 0, GTK_PACK_START);
-    gtk_box_set_child_packing(GTK_BOX(left), new->status_entry,
+    gtk_box_set_child_packing(GTK_BOX(left), new->status_entry->widget,
                               FALSE, FALSE, 0, GTK_PACK_START);
 
     /* signals */
@@ -97,6 +109,19 @@ ui_init(int *argc, char **argv[])
 
     return new;
 } /* ui_init */
+
+void
+ui_print(const gchar *msg, ...)
+{
+    va_list ap;
+    char *str;
+    va_start(ap, msg);
+    str = g_strdup_vprintf(msg, ap);
+    ui_tabs_log(ui->tabs, str);
+    g_printerr("%s", str);
+    va_end(ap);
+    g_free(str);
+} /* ui_print */
 
 void
 ui_run(void)

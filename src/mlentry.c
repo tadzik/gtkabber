@@ -1,54 +1,50 @@
-#include <gtk/gtk.h>
-
-typedef void (*mlentry_fun)(GtkWidget *, const gchar *, gpointer);
+#include "mlentry.h"
+#include "common.h"
 
 static gboolean
 keypress_cb(GtkWidget *v, GdkEventKey *e, gpointer p)
 {
-	GtkTextBuffer *buf;
-	gpointer mldata = g_object_get_data(G_OBJECT(v), "mlentry_data");
-	mlentry_fun cb = (mlentry_fun)p;
-	buf = GTK_TEXT_BUFFER(gtk_text_view_get_buffer(GTK_TEXT_VIEW(v)));
-	if(e->keyval == 65293 && !(e->state & GDK_SHIFT_MASK)) {
-		GtkTextIter b, e;
-		gtk_text_buffer_get_start_iter(buf, &b);
-		gtk_text_buffer_get_end_iter(buf, &e);
-		cb(v, gtk_text_buffer_get_text(buf, &b, &e, TRUE), mldata);
-		return TRUE;
-	}
-	return FALSE;
+    if(e->keyval == 65293 && !(e->state & GDK_SHIFT_MASK)) {
+        Mlentry *obj = (Mlentry *)p;
+        obj->callback(obj, mlentry_get_text(obj));
+        return TRUE;
+    }
+    return FALSE;
+    UNUSED(v);
 }
 
 void
-mlentry_clear(GtkWidget *v)
+mlentry_clear(Mlentry *o)
 {
-	GtkTextBuffer *buf;
-	buf = GTK_TEXT_BUFFER(gtk_text_view_get_buffer(GTK_TEXT_VIEW(v)));
-	gtk_text_buffer_set_text(buf, "", -1);
+    GtkTextBuffer *buf;
+    buf = GTK_TEXT_BUFFER(
+            gtk_text_view_get_buffer(GTK_TEXT_VIEW(o->widget))
+          );
+    gtk_text_buffer_set_text(buf, "", -1);
 }
 
 const char *
-mlentry_get_text(GtkWidget *v)
+mlentry_get_text(Mlentry *o)
 {
-	GtkTextBuffer *buf;
-	GtkTextIter b, e;
-	buf = GTK_TEXT_BUFFER(gtk_text_view_get_buffer(GTK_TEXT_VIEW(v)));
-	gtk_text_buffer_get_start_iter(buf, &b);
-	gtk_text_buffer_get_end_iter(buf, &e);
-	return gtk_text_buffer_get_text(buf, &b, &e, TRUE);
+    GtkTextBuffer *buf;
+    GtkTextIter b, e;
+    buf = GTK_TEXT_BUFFER(
+            gtk_text_view_get_buffer(GTK_TEXT_VIEW(o->widget))
+          );
+    gtk_text_buffer_get_start_iter(buf, &b);
+    gtk_text_buffer_get_end_iter(buf, &e);
+    return gtk_text_buffer_get_text(buf, &b, &e, TRUE);
 }
 
-GtkWidget *
-mlentry_new(void (*fun)(GtkWidget *, const char *, gpointer), gpointer data)
+Mlentry *
+mlentry_new(void (*fun)(Mlentry *, const gchar *, gpointer),
+            gpointer data)
 {
-	GtkWidget *view;
-	GtkTextBuffer *buffer;
-
-	view = gtk_text_view_new();
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
-	g_object_set_data(G_OBJECT(view), "mlentry_data", data);
-	g_signal_connect(G_OBJECT(view), "key-press-event",
-			 G_CALLBACK(keypress_cb), (gpointer)fun);
-
-	return view;
+    Mlentry *new = g_malloc(sizeof(Mlentry));
+    new->widget = gtk_text_view_new();
+    new->callback = fun;
+    new->udata = data;
+    g_signal_connect(G_OBJECT(new->widget), "key-press-event",
+                     G_CALLBACK(keypress_cb), (gpointer)new);
+    return new;
 }

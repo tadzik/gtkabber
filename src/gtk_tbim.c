@@ -1,4 +1,4 @@
-#include <gtk/gtk.h>
+#include "gtk_tbim.h"
 #include <string.h>
 
 /* Stolen from gnome bugzilla (small hacks for my needs).
@@ -6,7 +6,7 @@
  * The patch is there since 2004 goddamnit */
 
 /**
- * tbim: (text_buffer_insert_markup)
+ * gtk_text_buffer_insert_markup
  * @buffer: a #GtkTextBuffer
  * @iter: a position in the buffer
  * @markup: UTF-8 format text with pango markup to insert
@@ -22,10 +22,11 @@
  **/
 
 void
-gtk_tbim (GtkTextBuffer *buffer,
-	  GtkTextIter   *textiter,
-	  const gchar   *markup,
-	  gint           len)
+gtk_text_buffer_insert_markup(
+    GtkTextBuffer *buffer,
+    GtkTextIter   *textiter,
+    const gchar   *markup,
+    gint           len)
 {
 	PangoAttrIterator  *paiter;
 	PangoAttrList      *attrlist;
@@ -150,6 +151,3 @@ gtk_tbim (GtkTextBuffer *buffer,
 	pango_attr_list_unref(attrlist);
 	g_free(text);
 }
-
-
-

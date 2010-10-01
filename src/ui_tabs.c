@@ -1,5 +1,54 @@
 #include "common.h"
+#include "gtk_tbim.h"
 #include "ui_tabs.h"
+
+static void ui_tabs_scroll_down(Chattab *);
+static void ui_tabs_append_anyhow(Chattab *, const gchar *,
+                                  void (*fun)(
+                                      GtkTextBuffer *, GtkTextIter *,
+                                      const gchar *, gint
+                                  ));
+
+static void
+ui_tabs_append_anyhow(Chattab *t, const gchar *s,
+                      void (*fun)(
+                          GtkTextBuffer *, GtkTextIter *,
+                          const gchar *, gint
+                      ))
+{
+    GtkTextIter i;
+    g_assert(t);
+    gtk_text_buffer_get_end_iter(t->buffer, &i);
+    (*fun)(t->buffer, &i, s, -1);
+    ui_tabs_scroll_down(t);
+} /* ui_tabs_append_anyhow */
+
+void
+ui_tabs_append_text(Chattab *t, const gchar *s)
+{
+    ui_tabs_append_anyhow(t, s, gtk_text_buffer_insert);
+} /* ui_tabs_append_text */
+
+void
+ui_tabs_append_markup(Chattab *t, const gchar *s)
+{
+    ui_tabs_append_anyhow(t, s, gtk_text_buffer_insert_markup);
+} /* ui_tabs_append_markup */
+
+void
+ui_tabs_cleanup(Notebook *t)
+{
+    if(t->tabs) {
+        GSList *elem;
+        for(elem = t->tabs; elem; elem = elem->next) {
+            Chattab *t = (Chattab *)elem->data;
+            g_free(t->jid);
+            g_free(t->title);
+            g_free(t);
+        }
+        g_slist_free(t->tabs);
+    }
+} /* ui_tabs_cleanup */
 
 Chattab *
 ui_tabs_create(Notebook *n,
@@ -83,11 +132,18 @@ ui_tabs_create(Notebook *n,
     return tab;
 } /* ui_tabs_create */
 
+void
+ui_tabs_log(Notebook *n, const gchar *s)
+{
+    ui_tabs_append_text(n->status_tab, s);
+} /* ui_tabs_log */
+
 Notebook *
 ui_tabs_new(void)
 {
     Notebook *new = g_malloc(sizeof(Notebook));
     new->nbook = gtk_notebook_new();
+    new->tabs = NULL;
     /*
     g_signal_connect(G_OBJECT(new->nbook), "switch-page",
                      G_CALLBACK(tab_switch_cb), NULL);
@@ -95,3 +151,15 @@ ui_tabs_new(void)
     ui_tabs_create(new, NULL, "Status", 0);
     return new;
 }
+
+static void
+ui_tabs_scroll_down(Chattab *tab)
+{
+    GtkAdjustment *adj;
+    gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(tab->tview),
+                                 tab->mk, 0.0, FALSE, 0.0, 0.0);
+    adj = gtk_scrolled_window_get_vadjustment(
+            GTK_SCROLLED_WINDOW(tab->scrolled)
+          );
+    gtk_adjustment_set_value(adj, adj->upper);
+} /* tab_scroll_down */

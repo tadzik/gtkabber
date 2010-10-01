@@ -1,5 +1,7 @@
 #ifndef GTK_TBIM_H
 #define GTK_TBIM_H
-void gtk_tbim(GtkTextBuffer *, GtkTextIter *,
-	      const gchar *, gint len);
+#include <gtk/gtk.h>
+
+void gtk_text_buffer_insert_markup(GtkTextBuffer *, GtkTextIter *,
+                                   const gchar *, gint len);
 #endif
