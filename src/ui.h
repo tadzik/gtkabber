@@ -2,14 +2,15 @@
 #define UI_H
 
 #include <gtk/gtk.h>
+#include "ui_roster.h"
 #include "ui_tabs.h"
 #include "mlentry.h"
 
 typedef struct {
     GtkWidget *window,
-              *roster,
               *status_box,
               *toolbox;
+    Ui_Roster *roster;
     Mlentry   *status_entry;
     Notebook  *tabs;
 } Ui;

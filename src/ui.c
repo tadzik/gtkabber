@@ -17,6 +17,7 @@ cbox_changed_cb(GtkComboBox *e)
 static void destroy(void)
 {
     gtk_main_quit();
+    g_free(ui->roster);
     g_free(ui->status_entry);
     ui_tabs_cleanup(ui->tabs);
     g_free(ui);
@@ -67,7 +68,7 @@ ui_init(int *argc, char **argv[])
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(rwin),
                                    GTK_POLICY_AUTOMATIC,
                                    GTK_POLICY_AUTOMATIC);
-    new->roster = gtk_tree_view_new(); /* TODO proper ui_roster object */
+    new->roster = ui_roster_new();
     new->status_box = gtk_combo_box_new_text();
     setup_cbox(new->status_box);
 
@@ -77,7 +78,7 @@ ui_init(int *argc, char **argv[])
 
     /* packing */
     gtk_scrolled_window_add_with_viewport(GTK_SCROLLED_WINDOW(rwin),
-                                          new->roster);
+                                          new->roster->widget);
 
     gtk_container_add(GTK_CONTAINER(new->window), vbox);
 

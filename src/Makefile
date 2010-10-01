@@ -16,8 +16,11 @@ gtk_tbim.o: gtk_tbim.h gtk_tbim.c
 mlentry.o: mlentry.h mlentry.c
 	$(COMPILE) mlentry.c
 
-ui.o: common.h ui.c ui.h
+ui.o: common.h ui.c ui.h ui_roster.h
 	$(COMPILE) ui.c
+
+ui_roster.o: common.h ui_roster.c ui_roster.h ui.h xmpp_roster.h
+	$(COMPILE) ui_roster.c
 
 ui_tabs.o: common.h ui_tabs.c ui_tabs.h gtk_tbim.h
 	$(COMPILE) ui_tabs.c
@@ -25,8 +28,9 @@ ui_tabs.o: common.h ui_tabs.c ui_tabs.h gtk_tbim.h
 main.o: main.c ui.h
 	$(COMPILE) main.c
 
-main: main.o ui.o ui_tabs.o gtk_tbim.o mlentry.o
-	$(LD) $(LDFLAGS) main.o ui.o ui_tabs.o gtk_tbim.o mlentry.o -o main
+main: main.o ui.o ui_tabs.o gtk_tbim.o mlentry.o ui_roster.o
+	$(LD) $(LDFLAGS) main.o ui.o ui_tabs.o gtk_tbim.o mlentry.o \
+		ui_roster.o -o main
 
 clean:
 	rm -f main *.o
