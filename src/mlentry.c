@@ -6,7 +6,7 @@ keypress_cb(GtkWidget *v, GdkEventKey *e, gpointer p)
 {
     if(e->keyval == 65293 && !(e->state & GDK_SHIFT_MASK)) {
         Mlentry *obj = (Mlentry *)p;
-        obj->callback(obj, mlentry_get_text(obj));
+        obj->callback(obj, mlentry_get_text(obj), p);
         return TRUE;
     }
     return FALSE;

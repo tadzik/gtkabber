@@ -5,7 +5,7 @@
 struct _Mlentry {
     GtkWidget *widget;
     gpointer udata;
-    void (*callback)(struct _Mlentry *, const char *);
+    void (*callback)(struct _Mlentry *, const char *, gpointer);
 };
 typedef struct _Mlentry Mlentry;
 
