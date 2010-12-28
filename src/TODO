@@ -1,0 +1,14 @@
+Big Stuff:
+    Ui → in progress
+    Xmpp → n/a
+    Scripting → n/a
+
+TBD:
+» roster
+    -roster should NOT be a singleton, so there will be a possibility to support multiple accounts one day
+tabs:
+    -focus
+    -closing
+    -message printing
+keybingings
+wm urgency
